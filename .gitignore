@@ -2,6 +2,7 @@
 
 # Dependencies
 /node_modules
+sequelize-helper.txt
 
 # Environment variables
 # Do not commit .env files as they contain sensitive information.

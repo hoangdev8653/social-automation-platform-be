@@ -1,17 +1,20 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import morgan from "morgan";
-import helmet from "helmet";
-import compression from "compression";
+const express = require("express");
+const dotenv = require("dotenv");
+const cors = require("cors");
+const morgan = require("morgan");
+const helmet = require("helmet");
+const compression = require("compression");
+const { corsOptions } = require("../src/config/cors.js");
+const { connectDB } = require("./config/connectDB.js");
 
 dotenv.config();
 
 const app = express();
 
+connectDB();
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(compression());
