@@ -6,6 +6,7 @@ const helmet = require("helmet");
 const compression = require("compression");
 const { corsOptions } = require("../src/config/cors.js");
 const { connectDB } = require("./config/connectDB.js");
+const routers = require("./routes/index.js");
 
 dotenv.config();
 
@@ -23,6 +24,9 @@ app.use(compression());
 app.get("/", (req, res) => {
   res.json({ message: "Social Automation Platform Backend is running 🚀" });
 });
+
+app.use("/api/v1/user", routers.userRouter);
+app.use("/api/v1/auth", routers.authRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
