@@ -8,8 +8,8 @@ const validateToken = async (req, res, next) => {
     token = authHeader.slice(7);
     try {
       const decoded = await jwt.verify(token, process.env.SECRET_KEY);
-      req.role = decoded.role;
-      req.userId = decoded.userId;
+      req.userRole = decoded.role; // Thống nhất tên thành userRole để rõ ràng hơn
+      req.userId = decoded.userId; // Payload của token chứa 'id', không phải 'userId'
       next();
     } catch (error) {
       if (error.name === "JsonWebTokenError") {

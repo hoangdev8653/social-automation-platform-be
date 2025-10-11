@@ -1,29 +1,27 @@
 "use strict";
 const { Model } = require("sequelize");
-
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
+  class SocialAccount extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
-      // Một User có thể tạo nhiều Post
-      User.hasMany(models.Post, {
-        foreignKey: "user_id",
-        as: "createdPosts",
+      SocialAccount.belongsTo(models.Platform, {
+        foreignKey: "platform_id",
+        as: "platform",
       });
-
-      // Một User (admin) có thể duyệt nhiều Post
-      User.hasMany(models.Post, {
-        foreignKey: "approved_by",
-        as: "approvedPosts",
+      // Một SocialAccount có thể là target của nhiều Post
+      SocialAccount.belongsToMany(models.Post, {
+        through: "PostTargets",
+        foreignKey: "social_account_id",
+        otherKey: "post_id",
+        as: "posts",
       });
     }
   }
-  User.init(
+  SocialAccount.init(
     {
       id: {
         type: DataTypes.UUID,
@@ -31,25 +29,22 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         allowNull: false,
       },
-      name: {
+
+      account_name: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      email: {
-        type: DataTypes.STRING,
-        allowNull: false,
-        unique: true,
-      },
-      password: {
+      account_id: {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      role: {
-        type: DataTypes.STRING,
-        defaultValue: "user",
-        validate: {
-          isIn: [["user", "admin"]],
-        },
+      account_image: {
+        type: DataTypes.TEXT,
+        allowNull: false,
+      },
+      access_token: {
+        type: DataTypes.TEXT,
+        allowNull: false,
       },
       createdAt: {
         allowNull: false,
@@ -62,8 +57,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "User",
+      modelName: "SocialAccount",
     }
   );
-  return User;
+  return SocialAccount;
 };

@@ -67,6 +67,20 @@ const updateRole = async (req, res, next) => {
   }
 };
 
+const resetPassword = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const user = await userService.resetPassword(userId, { id });
+    return res
+      .status(StatusCodes.OK)
+      .json({ status: 200, message: "Xử lý thành công", content: user });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -85,5 +99,6 @@ module.exports = {
   updateUser,
   updatePassword,
   updateRole,
+  resetPassword,
   deleteUser,
 };

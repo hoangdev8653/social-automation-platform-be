@@ -1,8 +1,7 @@
 "use strict";
 const { Model } = require("sequelize");
-
 module.exports = (sequelize, DataTypes) => {
-  class User extends Model {
+  class Platform extends Model {
     /**
      * Helper method for defining associations.
      * This method is not a part of Sequelize lifecycle.
@@ -10,22 +9,11 @@ module.exports = (sequelize, DataTypes) => {
      */
     static associate(models) {
       // define association here
-      // Một User có thể tạo nhiều Post
-      User.hasMany(models.Post, {
-        foreignKey: "user_id",
-        as: "createdPosts",
-      });
-
-      // Một User (admin) có thể duyệt nhiều Post
-      User.hasMany(models.Post, {
-        foreignKey: "approved_by",
-        as: "approvedPosts",
-      });
     }
   }
-  User.init(
+  Platform.init(
     {
-      id: {
+    id: {
         type: DataTypes.UUID,
         defaultValue: DataTypes.UUIDV4,
         primaryKey: true,
@@ -35,21 +23,9 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.STRING,
         allowNull: false,
       },
-      email: {
+      image: {
         type: DataTypes.STRING,
         allowNull: false,
-        unique: true,
-      },
-      password: {
-        type: DataTypes.STRING,
-        allowNull: false,
-      },
-      role: {
-        type: DataTypes.STRING,
-        defaultValue: "user",
-        validate: {
-          isIn: [["user", "admin"]],
-        },
       },
       createdAt: {
         allowNull: false,
@@ -62,8 +38,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       sequelize,
-      modelName: "User",
+      modelName: "Platform",
     }
   );
-  return User;
+  return Platform;
 };

@@ -27,6 +27,13 @@ app.get("/", (req, res) => {
 
 app.use("/api/v1/user", routers.userRouter);
 app.use("/api/v1/auth", routers.authRouter);
+app.use("/api/v1/platform", routers.platformRouter);
+app.use("/api/v1/media", routers.mediaRouter);
+app.use("/api/v1/social-account", routers.socialaccountRouter);
+app.use("/api/v1/post", routers.postRouter);
+app.use("/api/v1/postMedia", routers.postMediaRouter);
+app.use("/api/v1/postTarget", routers.postTargetRouter);
+app.use("/api/v1/notification", routers.notificationRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

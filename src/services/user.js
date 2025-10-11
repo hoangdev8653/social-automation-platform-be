@@ -58,12 +58,32 @@ const updatePassword = async (userId, { password, newPassword }) => {
 
 const updateRole = async (userId, { id, role }) => {
   try {
-    const user = await db.User.findOne({ where: { id: userId } });
+    const user = await db.User.findOne({ where: { id } });
     if (!user) {
       throw new ApiError(404, "User not found");
     }
     const updatedUser = await db.User.update({ role }, { where: { id } });
     return updatedUser;
+  } catch (error) {
+    throw error;
+  }
+};
+
+const resetPassword = async (id) => {
+  try {
+    const user = await db.User.findOne({ where: { id } });
+    if (!user) {
+      throw new ApiError(404, "User not found");
+    }
+    const defaultPassword = "123456";
+    const hashedPassword = await hashPassword(defaultPassword);
+
+    const updated = await db.User.update(
+      { password: hashedPassword },
+      { where: { id } }
+    );
+
+    return updated;
   } catch (error) {
     throw error;
   }
@@ -87,5 +107,6 @@ module.exports = {
   updateUser,
   updatePassword,
   updateRole,
+  resetPassword,
   deleteUser,
 };
