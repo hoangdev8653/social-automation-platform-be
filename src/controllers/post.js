@@ -86,6 +86,24 @@ const approvePost = async (req, res, next) => {
   }
 };
 
+const rejectPost = async (req, res, next) => {
+  try {
+    const { id: postId } = req.params;
+    const { reason } = req.body; // Lấy lý do từ chối từ body
+    const adminId = req.userId;
+
+    await postService.rejectPost({ postId, adminId, reason });
+
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Từ chối bài viết thành công.",
+    });
+  } catch (error) {
+    console.error("Error rejecting post:", error);
+    next(error);
+  }
+};
+
 const getAllPosts = async (req, res, next) => {
   try {
     const posts = await postService.getAllPosts();
@@ -119,6 +137,7 @@ const deletePost = async (req, res, next) => {
 module.exports = {
   createPost,
   approvePost,
+  rejectPost, // Export hàm mới
   getAllPosts,
   deletePost,
 };
