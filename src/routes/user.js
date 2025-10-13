@@ -14,7 +14,10 @@ router
   .put(validateToken, authorizeRoles("user"), userController.updateRole);
 router
   .route("/resetPassword/:id")
-  .put(authorizeRoles("admin"), userController.resetPassword);
+  .put(validateToken, authorizeRoles("admin"), userController.resetPassword);
+router
+  .route("/lock-account/:id")
+  .put(validateToken, authorizeRoles("admin"), userController.lockAccount);
 router.route("/:id").delete(authorizeRoles("admin"), userController.deleteUser);
 
 module.exports = router;
