@@ -81,6 +81,20 @@ const resetPassword = async (req, res, next) => {
   }
 };
 
+const lockAccount = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const user = await userService.lockAccount(id);
+    return res
+      .status(StatusCodes.OK)
+      .json({ status: 200, messsage: "Xử lý thành công", content: user });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -100,5 +114,6 @@ module.exports = {
   updatePassword,
   updateRole,
   resetPassword,
+  lockAccount,
   deleteUser,
 };

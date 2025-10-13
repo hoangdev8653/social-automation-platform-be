@@ -89,6 +89,20 @@ const resetPassword = async (id) => {
   }
 };
 
+const lockAccount = async (id) => {
+  const user = await db.User.findOne({ where: { id } });
+  if (!user) {
+    throw new ApiError(404, "User Not Found");
+  }
+  const updated = await db.User.update(
+    {
+      status: "blocked",
+    },
+    { where: { id } }
+  );
+  return updated;
+};
+
 const deleteUser = async (id) => {
   try {
     const user = await db.User.findOne({ where: { id } });
@@ -108,5 +122,6 @@ module.exports = {
   updatePassword,
   updateRole,
   resetPassword,
+  lockAccount,
   deleteUser,
 };
