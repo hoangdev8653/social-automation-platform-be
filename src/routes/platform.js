@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const platformController = require("../controllers/platform.js");
-const uploadCloud = require("../middlewares/cloudinary.js");
+const { uploadCloud } = require("../middlewares/cloudinary.js");
 
 router.route("/").get(platformController.getAllPlatform);
 router.route("/:id").get(platformController.getPlatformById);

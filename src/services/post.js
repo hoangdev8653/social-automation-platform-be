@@ -10,6 +10,7 @@ const {
   Notification, // Import model Notification
 } = require("../models");
 const ApiError = require("../utils/ApiError");
+const { deleteFromCloud } = require("../middlewares/cloudinary");
 const { StatusCodes } = require("http-status-codes");
 const { publishToSocialMedia } = require("./publisher"); // Giả định service này tồn tại
 
@@ -67,8 +68,6 @@ const createPost = async (data) => {
 
     // Nếu tất cả thành công, commit transaction
     await t.commit();
-    console.log(1);
-
     return newPost; // Trả về bài post vừa tạo
   } catch (error) {
     // Nếu có bất kỳ lỗi nào, rollback tất cả các thay đổi
@@ -117,7 +116,7 @@ const approvePost = async (data) => {
     const postSnippet = post.caption
       ? post.caption.substring(0, 50) + "..."
       : "không có tiêu đề";
-    await Notification.create(
+    const a = await Notification.create(
       {
         user_id: post.user_id, // ID của người tạo bài viết
         type: "post_approved",
@@ -138,6 +137,71 @@ const approvePost = async (data) => {
   } catch (error) {
     await t.rollback();
     // Ném lỗi ra ngoài để controller có thể bắt
+    throw error;
+  }
+};
+
+const rejectPost = async (data) => {
+  const { postId, adminId, reason } = data;
+  const t = await sequelize.transaction();
+  try {
+    const post = await Post.findByPk(postId, {
+      include: [{ model: Media, as: "media", through: { attributes: [] } }],
+      transaction: t,
+    });
+
+    if (!post) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
+    }
+
+    // Chỉ cho phép từ chối bài viết đang chờ duyệt
+    if (post.status !== "pending_approval" && post.status !== "draft") {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `Không thể từ chối bài viết đang ở trạng thái '${post.status}'.`
+      );
+    }
+
+    // Cập nhật trạng thái và lý do từ chối
+    post.status = "rejected";
+    post.rejected_reason = reason || "Không có lý do cụ thể.";
+    await post.save({ transaction: t });
+
+    // Gửi thông báo cho người dùng
+    const postSnippet = post.caption
+      ? post.caption.substring(0, 20) + "..."
+      : "không có tiêu đề";
+    await Notification.create(
+      {
+        user_id: post.user_id,
+        type: "post_rejected",
+        message: `Bài viết "${postSnippet}" của bạn đã bị từ chối. Lý do: ${post.rejected_reason}`,
+        related_entity_id: post.id,
+        related_entity_type: "post",
+      },
+      { transaction: t }
+    );
+
+    // Xóa media liên quan
+    if (post.media && post.media.length > 0) {
+      const mediaIds = post.media.map((m) => m.id);
+
+      // Xóa file trên Cloudinary
+      // Chúng ta không cần await tất cả cùng lúc, có thể để nó chạy ngầm
+      for (const media of post.media) {
+        const publicId = media.metadata?.filename; // Lấy public_id từ metadata
+        if (publicId) deleteFromCloud(publicId);
+      }
+
+      // Xóa các bản ghi trong bảng Media và liên kết trong PostMedia
+      await PostMedia.destroy({ where: { post_id: postId }, transaction: t });
+      await Media.destroy({ where: { id: mediaIds }, transaction: t });
+    }
+
+    await t.commit();
+    return post;
+  } catch (error) {
+    await t.rollback();
     throw error;
   }
 };
@@ -271,6 +335,7 @@ const publishPost = async (postId, existingTransaction = null) => {
 module.exports = {
   createPost,
   approvePost,
+  rejectPost,
   getAllPosts,
   deletePost,
   publishPost,

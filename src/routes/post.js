@@ -3,7 +3,7 @@ const router = express.Router();
 const postController = require("../controllers/post.js");
 const validateToken = require("../middlewares/auth.js");
 const authorizeRoles = require("../middlewares/role.js");
-const uploadCloud = require("../middlewares/cloudinary.js");
+const {uploadCloud} = require("../middlewares/cloudinary.js");
 
 // Định nghĩa route để tạo bài viết mới
 // POST /api/v1/posts
@@ -23,5 +23,8 @@ router
 router
   .route("/:id/approve")
   .patch(validateToken, authorizeRoles("admin"), postController.approvePost);
+router
+  .route("/:id/reject")
+  .patch(validateToken, authorizeRoles("admin"), postController.rejectPost);
 
 module.exports = router;
