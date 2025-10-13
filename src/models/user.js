@@ -16,6 +16,12 @@ module.exports = (sequelize, DataTypes) => {
         as: "createdPosts",
       });
 
+      // Một User có nhiều Notification
+      User.hasMany(models.Notification, {
+        foreignKey: "user_id",
+        as: "notifications",
+      });
+
       // Một User (admin) có thể duyệt nhiều Post
       User.hasMany(models.Post, {
         foreignKey: "approved_by",
@@ -49,6 +55,14 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: "user",
         validate: {
           isIn: [["user", "admin"]],
+        },
+      },
+      status: {
+        type: DataTypes.STRING,
+        defaultValue: "active", // 'active' | 'blocked'
+        allowNull: false,
+        validate: {
+          isIn: [["active", "blocked"]],
         },
       },
       createdAt: {

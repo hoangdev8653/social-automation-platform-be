@@ -24,7 +24,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
       },
       user_id: {
-        // Người nhận thông báo
         type: DataTypes.UUID,
         allowNull: false,
       },
