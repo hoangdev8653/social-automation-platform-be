@@ -7,6 +7,7 @@ const compression = require("compression");
 const { corsOptions } = require("../src/config/cors.js");
 const { connectDB } = require("./config/connectDB.js");
 const routers = require("./routes/index.js");
+const { startScheduler } = require("./scheduler.js");
 
 dotenv.config();
 
@@ -36,4 +37,7 @@ app.use("/api/v1/postTarget", routers.postTargetRouter);
 app.use("/api/v1/notification", routers.notificationRouter);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  startScheduler(); // Khởi động bộ lập lịch
+});
