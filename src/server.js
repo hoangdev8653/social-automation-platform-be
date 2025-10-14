@@ -35,6 +35,8 @@ app.use("/api/v1/post", routers.postRouter);
 app.use("/api/v1/postMedia", routers.postMediaRouter);
 app.use("/api/v1/postTarget", routers.postTargetRouter);
 app.use("/api/v1/notification", routers.notificationRouter);
+app.use("/api/v1/template-category", routers.templateCategoryRouter);
+app.use("/api/v1/template", routers.templateRouter);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -7,6 +7,8 @@ const postRouter = require("./post.js");
 const postMediaRouter = require("./postMedia.js");
 const postTargetRouter = require("./postTarget.js");
 const notificationRouter = require("./notification.js");
+const templateCategoryRouter = require("./templatecategory.js");
+const templateRouter = require("./template.js");
 
 const routers = {
   userRouter,
@@ -18,6 +20,8 @@ const routers = {
   postMediaRouter,
   postTargetRouter,
   notificationRouter,
+  templateCategoryRouter,
+  templateRouter,
 };
 
 module.exports = routers;
