@@ -9,6 +9,8 @@ const postTargetRouter = require("./postTarget.js");
 const notificationRouter = require("./notification.js");
 const templateCategoryRouter = require("./templatecategory.js");
 const templateRouter = require("./template.js");
+const facebookRouter = require("./facbook.js");
+const youtubeRouter = require("./youtube.js");
 
 const routers = {
   userRouter,
@@ -22,6 +24,8 @@ const routers = {
   notificationRouter,
   templateCategoryRouter,
   templateRouter,
+  facebookRouter,
+  youtubeRouter,
 };
 
 module.exports = routers;

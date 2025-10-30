@@ -1,6 +1,9 @@
 const { PostTargets, SocialAccount, Platform } = require("../models"); // Sequelize models
 const axios = require("axios"); // Thư viện để gọi API
 const db = require("../models");
+const fs = require("fs");
+const path = require("path");
+const { getAuthenticatedYouTubeClient } = require("./youtube");
 
 const GRAPH_API_VERSION = "v19.0"; // Cập nhật phiên bản API hợp lệ
 
@@ -103,6 +106,81 @@ const publishToFacebook = async (target, post) => {
 };
 
 /**
+ * Đăng video lên YouTube.
+ * @param {object} target - Một bản ghi từ PostTargets.
+ * @param {object} post - Thông tin bài viết (caption, media).
+ * @returns {Promise<string>} URL của video đã đăng.
+ */
+const publishToYouTube = async (target, post) => {
+  // 1. Kiểm tra xem có video để đăng không
+  const videoMedia = post.media?.find((m) => m.type === "video");
+  if (!videoMedia) {
+    throw new Error("Không có video nào trong bài viết để đăng lên YouTube.");
+  }
+
+  const socialAccountId = target.SocialAccount.id;
+  const videoUrl = videoMedia.url;
+
+  // 2. Lấy client YouTube đã được xác thực (tự động refresh token)
+  const youtube = await getAuthenticatedYouTubeClient(socialAccountId);
+
+  // 3. Tải video từ Cloudinary về để tạo stream
+  // YouTube API cần một file stream, không thể dùng URL trực tiếp như Facebook
+  const tempDir = path.join(__dirname, "..", "temp");
+  if (!fs.existsSync(tempDir)) {
+    fs.mkdirSync(tempDir);
+  }
+  const tempFilePath = path.join(tempDir, `video_${post.id}.mp4`);
+
+  try {
+    const response = await axios({
+      method: "get",
+      url: videoUrl,
+      responseType: "stream",
+    });
+
+    const writer = fs.createWriteStream(tempFilePath);
+    response.data.pipe(writer);
+
+    await new Promise((resolve, reject) => {
+      writer.on("finish", resolve);
+      writer.on("error", reject);
+    });
+
+    // 4. Chuẩn bị metadata cho video
+    const videoMetadata = {
+      snippet: {
+        title:
+          post.caption?.substring(0, 100) ||
+          `Video from ${new Date().toISOString()}`,
+        description: `${post.caption || ""}\n\n${post.hashtags || ""}`.trim(),
+        // tags: post.hashtags ? post.hashtags.split(' ').map(t => t.replace('#', '')) : [],
+      },
+      status: {
+        privacyStatus: "public", // hoặc 'private', 'unlisted'
+      },
+    };
+
+    // 5. Gọi API để upload video
+    const uploadResponse = await youtube.videos.insert({
+      part: "snippet,status",
+      resource: videoMetadata,
+      media: {
+        body: fs.createReadStream(tempFilePath),
+      },
+    });
+
+    const videoId = uploadResponse.data.id;
+    return `https://www.youtube.com/watch?v=${videoId}`;
+  } finally {
+    // 6. Xóa file tạm sau khi upload xong
+    if (fs.existsSync(tempFilePath)) {
+      fs.unlinkSync(tempFilePath);
+    }
+  }
+};
+
+/**
  * Hàm điều phối, gọi hàm đăng bài tương ứng với nền tảng.
  * @param {object} postToPublish - Đối tượng post đầy đủ thông tin.
  * @param {object} transaction - Giao dịch Sequelize.
@@ -127,7 +205,12 @@ const publishToSocialMedia = async (postToPublish, transaction) => {
         publishedUrl = await publishToFacebook(target, postToPublish);
       } else if (platformName === "instagram") {
         // publishedUrl = await publishToInstagram(target, postToPublish);
-      } // Thêm các nền tảng khác ở đây
+      } else if (platformName === "youtube") {
+        console.log(
+          ` -> Đang đăng lên YouTube Channel (Target ID: ${target.id})`
+        );
+        publishedUrl = await publishToYouTube(target, postToPublish);
+      }
 
       // Cập nhật trạng thái của target thành công
       await PostTargets.update(

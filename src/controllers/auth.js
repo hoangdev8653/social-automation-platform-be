@@ -56,6 +56,8 @@ const refreshToken = async (req, res, next) => {
   }
 };
 
+const facebook = async (req, res, next) => {};
+
 module.exports = {
   register,
   login,

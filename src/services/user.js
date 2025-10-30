@@ -56,7 +56,7 @@ const updatePassword = async (userId, { password, newPassword }) => {
   }
 };
 
-const updateRole = async (userId, { id, role }) => {
+const updateRole = async (id, { role }) => {
   try {
     const user = await db.User.findOne({ where: { id } });
     if (!user) {

@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const socialaccountController = require("../controllers/socialaccount.js");
-const uploadCloud = require("../middlewares/cloudinary.js");
 
 router.route("/").get(socialaccountController.getAllSocialAccounts);
 router.route("/:id").get(socialaccountController.getSocialAccountById);

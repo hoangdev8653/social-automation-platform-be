@@ -1,5 +1,8 @@
 const express = require("express");
 const dotenv = require("dotenv");
+const https = require("https");
+const fs = require("fs");
+const path = require("path");
 const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
@@ -37,9 +40,20 @@ app.use("/api/v1/postTarget", routers.postTargetRouter);
 app.use("/api/v1/notification", routers.notificationRouter);
 app.use("/api/v1/template-category", routers.templateCategoryRouter);
 app.use("/api/v1/template", routers.templateRouter);
+app.use("/api/v1/facebook", routers.facebookRouter);
+app.use("/api/v1/youtube", routers.youtubeRouter);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+// Cổng HTTPS phải khớp với cổng trong REDIRECT_URI của Facebook
+const PORT = process.env.PORT || 3007;
+
+// Cấu hình SSL/TLS để chạy HTTPS
+const sslOptions = {
+  key: fs.readFileSync(path.join(__dirname, "..", "server.key")), // Đường dẫn đến khóa riêng tư
+  cert: fs.readFileSync(path.join(__dirname, "..", "server.cert")), // Đường dẫn đến chứng chỉ
+};
+
+// Tạo và khởi chạy máy chủ HTTPS thay vì HTTP
+https.createServer(sslOptions, app).listen(PORT, () => {
+  console.log(`🚀 HTTPS Server running on https://localhost:${PORT}`);
   startScheduler(); // Khởi động bộ lập lịch
 });

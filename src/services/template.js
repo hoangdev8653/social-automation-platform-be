@@ -8,8 +8,8 @@ const getAllTemplate = async () => {
       include: [
         {
           model: db.TemplateCategory,
-          as: "category", // Alias định nghĩa trong model association
-          attributes: ["id", "name"], // Chỉ lấy các trường cần thiết
+          as: "category",
+          attributes: ["id", "name"],
         },
       ],
       order: [["createdAt", "DESC"]],
@@ -54,6 +54,27 @@ const createTemplate = async ({ type, category_id, title, content }) => {
   }
 };
 
+const updateTemplate = async (id, { type, category_id, title, content }) => {
+  try {
+    const template = await db.Template.findByPk(id);
+    if (!template) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Không tồn tại template.");
+    }
+    const updated = await db.Template.update(
+      {
+        type,
+        category_id,
+        title,
+        content,
+      },
+      { where: { id } }
+    );
+    return updated;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const deleteTemplate = async (id) => {
   try {
     const template = await db.Template.findByPk(id);
@@ -72,5 +93,6 @@ module.exports = {
   getAllTemplate,
   getTemplateById,
   createTemplate,
+  updateTemplate,
   deleteTemplate,
 };

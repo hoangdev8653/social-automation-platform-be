@@ -71,7 +71,7 @@ const resetPassword = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { id } = req.params;
-    const user = await userService.resetPassword(userId, { id });
+    const user = await userService.resetPassword(id);
     return res
       .status(StatusCodes.OK)
       .json({ status: 200, message: "Xử lý thành công", content: user });

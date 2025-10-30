@@ -29,7 +29,6 @@ module.exports = (sequelize, DataTypes) => {
         primaryKey: true,
         allowNull: false,
       },
-
       account_name: {
         type: DataTypes.STRING,
         allowNull: false,
@@ -42,9 +41,19 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
+      // Cho phép access_token là null vì với YouTube, chúng ta dùng refresh_token
       access_token: {
         type: DataTypes.TEXT,
-        allowNull: false,
+        allowNull: true,
+      },
+      // Thêm refresh_token cho các nền tảng như YouTube
+      refresh_token: {
+        type: DataTypes.TEXT,
+        allowNull: true,
+      },
+      fan_counts: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
       },
       createdAt: {
         allowNull: false,

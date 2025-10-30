@@ -4,17 +4,9 @@ const ApiError = require("../utils/ApiError.js");
 
 const createPost = async (req, res, next) => {
   try {
-    // Dữ liệu từ body: caption, hashtags, mảng các ID của social account
     const { caption, hashtags, socialAccountIds, scheduledTime } = req.body;
-
-    // Lấy user_id từ middleware xác thực token
     const userId = req.userId;
-    console.log(userId);
-
-    // Files được upload (từ multer chẳng hạn)
     const files = req.files;
-
-    // Chuyển đổi socialAccountIds từ string (nếu có) sang mảng TRƯỚC KHI KIỂM TRA
     let parsedSocialAccountIds;
     try {
       parsedSocialAccountIds =
@@ -28,7 +20,6 @@ const createPost = async (req, res, next) => {
       );
     }
 
-    // Kiểm tra dữ liệu đầu vào
     if (
       !parsedSocialAccountIds ||
       !Array.isArray(parsedSocialAccountIds) ||
@@ -47,14 +38,13 @@ const createPost = async (req, res, next) => {
       );
     }
 
-    // Gọi service để xử lý logic
     const newPost = await postService.createPost({
       userId,
       caption,
       hashtags,
       scheduledTime,
       socialAccountIds: parsedSocialAccountIds,
-      files, // mảng các file đã upload
+      files,
     });
 
     return res.status(StatusCodes.CREATED).json({
@@ -71,7 +61,7 @@ const createPost = async (req, res, next) => {
 const approvePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
-    const adminId = req.userId; // Lấy ID của admin từ token
+    const adminId = req.userId;
 
     const approvedPost = await postService.approvePost({ postId, adminId });
 
@@ -86,10 +76,25 @@ const approvePost = async (req, res, next) => {
   }
 };
 
+const getPostByUser = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const post = await postService.getPostByUser(userId);
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Lấy bài viết thành công!",
+      content: post,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const rejectPost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
-    const { reason } = req.body; // Lấy lý do từ chối từ body
+    const { reason } = req.body;
     const adminId = req.userId;
 
     await postService.rejectPost({ postId, adminId, reason });
@@ -137,7 +142,8 @@ const deletePost = async (req, res, next) => {
 module.exports = {
   createPost,
   approvePost,
-  rejectPost, // Export hàm mới
+  rejectPost,
   getAllPosts,
+  getPostByUser,
   deletePost,
 };

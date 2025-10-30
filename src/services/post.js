@@ -141,6 +141,17 @@ const approvePost = async (data) => {
   }
 };
 
+const getPostByUser = async (userId) => {
+  try {
+    const posts = await Post.findAll({
+      where: { user_id: userId },
+    });
+    return posts;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const rejectPost = async (data) => {
   const { postId, adminId, reason } = data;
   const t = await sequelize.transaction();
@@ -182,22 +193,6 @@ const rejectPost = async (data) => {
       { transaction: t }
     );
 
-    // Xóa media liên quan
-    if (post.media && post.media.length > 0) {
-      const mediaIds = post.media.map((m) => m.id);
-
-      // Xóa file trên Cloudinary
-      // Chúng ta không cần await tất cả cùng lúc, có thể để nó chạy ngầm
-      for (const media of post.media) {
-        const publicId = media.metadata?.filename; // Lấy public_id từ metadata
-        if (publicId) deleteFromCloud(publicId);
-      }
-
-      // Xóa các bản ghi trong bảng Media và liên kết trong PostMedia
-      await PostMedia.destroy({ where: { post_id: postId }, transaction: t });
-      await Media.destroy({ where: { id: mediaIds }, transaction: t });
-    }
-
     await t.commit();
     return post;
   } catch (error) {
@@ -236,16 +231,38 @@ const getAllPosts = async () => {
 };
 
 const deletePost = async (postId) => {
-  const post = await Post.findByPk(postId);
-  if (!post) {
-    throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
+  const t = await sequelize.transaction();
+  try {
+    const post = await Post.findByPk(postId, {
+      include: [{ model: Media, as: "media", through: { attributes: [] } }],
+      transaction: t,
+    });
+
+    if (!post) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
+    }
+
+    // Xóa media liên quan trên Cloudinary trước khi xóa trong DB
+    if (post.media && post.media.length > 0) {
+      const mediaIds = post.media.map((m) => m.id);
+
+      for (const media of post.media) {
+        const publicId = media.metadata?.filename;
+        if (publicId) deleteFromCloud(publicId);
+      }
+
+      // Xóa các bản ghi trong bảng Media và liên kết trong PostMedia
+      await PostMedia.destroy({ where: { post_id: postId }, transaction: t });
+      await Media.destroy({ where: { id: mediaIds }, transaction: t });
+    }
+
+    await post.destroy({ transaction: t });
+    await t.commit();
+    return { message: "Xóa bài viết thành công." };
+  } catch (error) {
+    await t.rollback();
+    throw error;
   }
-
-  // Do thiết lập `onDelete: 'CASCADE'` trong model,
-  // các bản ghi trong PostMedia và PostTargets sẽ tự động bị xóa.
-  await post.destroy();
-
-  return { message: "Xóa bài viết thành công." };
 };
 
 /**
@@ -337,6 +354,7 @@ module.exports = {
   approvePost,
   rejectPost,
   getAllPosts,
+  getPostByUser,
   deletePost,
   publishPost,
 };

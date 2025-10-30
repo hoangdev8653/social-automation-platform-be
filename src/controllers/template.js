@@ -44,6 +44,27 @@ const createTemplate = async (req, res, next) => {
   }
 };
 
+const updateTemplate = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { type, category_id, title, content } = req.body;
+    const template = await templateService.updateTemplate(id, {
+      type,
+      category_id,
+      title,
+      content,
+    });
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Xử lý thành công",
+      content: template,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const deleteTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -61,5 +82,6 @@ module.exports = {
   getAllTemplate,
   getTemplateById,
   createTemplate,
+  updateTemplate,
   deleteTemplate,
 };

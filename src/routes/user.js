@@ -13,7 +13,7 @@ router
   .route("/update-role/:id")
   .put(validateToken, authorizeRoles("user"), userController.updateRole);
 router
-  .route("/resetPassword/:id")
+  .route("/reset-password/:id")
   .put(validateToken, authorizeRoles("admin"), userController.resetPassword);
 router
   .route("/lock-account/:id")
