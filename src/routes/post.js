@@ -7,7 +7,8 @@ const { uploadCloud } = require("../middlewares/cloudinary.js");
 
 router.route("/ByUser").get(validateToken, postController.getPostByUser);
 
-router.route("/").get(validateToken, postController.getAllPosts);
+router.route("/").get(postController.getAllPosts);
+router.route("/:id").get(postController.getPostById);
 router
   .route("/")
   .post(validateToken, uploadCloud.array("files"), postController.createPost);

@@ -28,7 +28,6 @@ const login = async ({ email, password }) => {
     if (!user) {
       throw new ApiError(404, "Email không tồn tại");
     }
-    // KIỂM TRA TRẠNG THÁI TÀI KHOẢN
     if (user.status === "blocked") {
       throw new ApiError(403, "Tài khoản của bạn đã bị khóa.");
     }

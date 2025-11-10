@@ -11,6 +11,7 @@ const templateCategoryRouter = require("./templatecategory.js");
 const templateRouter = require("./template.js");
 const facebookRouter = require("./facbook.js");
 const youtubeRouter = require("./youtube.js");
+const xRouter = require("./x.js");
 
 const routers = {
   userRouter,
@@ -26,6 +27,7 @@ const routers = {
   templateRouter,
   facebookRouter,
   youtubeRouter,
+  xRouter,
 };
 
 module.exports = routers;

@@ -26,8 +26,6 @@ const updateUser = async (id, { name }) => {
     if (!user) {
       throw new ApiError(404, "User not found");
     }
-
-    delete updateData.password;
     const newUser = await db.User.update({ name }, { where: { id } });
     return newUser;
   } catch (error) {

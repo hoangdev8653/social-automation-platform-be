@@ -14,6 +14,34 @@ const { deleteFromCloud } = require("../middlewares/cloudinary");
 const { StatusCodes } = require("http-status-codes");
 const { publishToSocialMedia } = require("./publisher"); // Giả định service này tồn tại
 
+const getPostById = async (id) => {
+  try {
+    const post = await Post.findByPk(id, {
+      include: [
+        {
+          model: Media, // Sửa lỗi: Alias sai
+          as: "media", // Alias đúng là "media" theo model/post.js
+          attributes: ["id", "type", "url"],
+          through: { attributes: [] }, // Không lấy thông tin từ bảng trung gian PostMedia
+        },
+        {
+          model: User,
+          as: "author", // Alias đúng là "author" theo model/post.js
+          attributes: ["id", "name", "email"],
+        },
+        // Nếu bạn muốn lấy cả các target (social accounts) thì thêm include ở đây
+      ],
+      order: [["createdAt", "DESC"]],
+    });
+    if (!post) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
+    }
+    return post;
+  } catch (error) {
+    throw error;
+  }
+};
+
 const createPost = async (data) => {
   const { userId, caption, hashtags, scheduledTime, socialAccountIds, files } =
     data;
@@ -145,6 +173,20 @@ const getPostByUser = async (userId) => {
   try {
     const posts = await Post.findAll({
       where: { user_id: userId },
+      include: [
+        {
+          model: Media, // Sửa lỗi: Alias sai
+          as: "media", // Alias đúng là "media" theo model/post.js
+          attributes: ["id", "type", "url"],
+          through: { attributes: [] }, // Không lấy thông tin từ bảng trung gian PostMedia
+        },
+        {
+          model: User,
+          as: "author", // Alias đúng là "author" theo model/post.js
+          attributes: ["id", "name", "email"],
+        },
+        // Nếu bạn muốn lấy cả các target (social accounts) thì thêm include ở đây
+      ],
     });
     return posts;
   } catch (error) {
@@ -350,6 +392,7 @@ const publishPost = async (postId, existingTransaction = null) => {
 };
 
 module.exports = {
+  getPostById,
   createPost,
   approvePost,
   rejectPost,

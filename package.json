@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@ngrok/ngrok": "^1.5.2",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
@@ -22,6 +23,7 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "form-data": "^4.0.4",
     "googleapis": "^164.1.0",
     "helmet": "^8.1.0",
     "http-status-codes": "^2.3.0",
@@ -34,6 +36,7 @@
     "node-cron": "^4.2.1",
     "pg": "^8.16.3",
     "pg-hstore": "^2.3.4",
+    "pkce-challenge": "^5.0.0",
     "querystring": "^0.2.1",
     "sequelize": "^6.37.7"
   },

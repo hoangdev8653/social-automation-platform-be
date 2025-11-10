@@ -69,12 +69,17 @@ const createNotification = async (data, transaction = null) => {
  * @param {string} userId - ID của người dùng.
  * @returns {Promise<db.Notification>}
  */
-const updateStatusToRead = async (notificationId, userId) => {
+const updateStatusToRead = async (id) => {
   try {
-    const notification = await getNotificationById(notificationId, userId); // Tái sử dụng hàm get để kiểm tra quyền
-    notification.is_read = true;
-    await notification.save();
-    return notification;
+    const notification = await db.Notification.findByPk(id);
+    if (!notification) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Thông báo không tồn tại.");
+    }
+    const updatedNotification = await notification.update(
+      { is_read: "true" },
+      { new: true }
+    );
+    return updatedNotification;
   } catch (error) {
     throw error;
   }

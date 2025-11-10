@@ -6,6 +6,7 @@ const ApiError = require("../utils/ApiError");
 const validateToken = async (req, res, next) => {
   let token;
   const authHeader = req.headers.authorization;
+
   if (authHeader && authHeader.startsWith("Bearer")) {
     token = authHeader.slice(7);
     try {

@@ -115,7 +115,6 @@ const getUserChannel = async (tokens) => {
 
 const createOrUpdateChannel = async (channelData) => {
   try {
-    const YOUTUBE_PLATFORM_ID = "fe8f939f-0654-445e-9243-2cb48c859e1f";
     const channelExits = await db.SocialAccount.findOne({
       where: {
         account_id: channelData.platformId,
@@ -125,7 +124,7 @@ const createOrUpdateChannel = async (channelData) => {
 
     if (!channelExits) {
       const newChannel = await db.SocialAccount.create({
-        platform_id: YOUTUBE_PLATFORM_ID,
+        platform_id: process.env.ID_PLATFORM_YOUTUBE,
         account_id: channelData.platformId,
         account_name: channelData.name,
         account_image: channelData.avatar,
@@ -155,7 +154,7 @@ const createOrUpdateChannel = async (channelData) => {
 
 module.exports = {
   getYouTubeAuthUrl,
-  getAuthenticatedYouTubeClient, // Thêm hàm này vào exports
+  getAuthenticatedYouTubeClient,
   getTokens,
   getUserChannel,
   createOrUpdateChannel,

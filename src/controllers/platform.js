@@ -6,7 +6,7 @@ const getAllPlatform = async (req, res, next) => {
     const platforms = await platformService.getAllPlatform();
     res
       .status(StatusCodes.OK)
-      .json({ status: 200, message: "Xử lý thành công", data: platforms });
+      .json({ status: 200, message: "Xử lý thành công", content: platforms });
   } catch (error) {
     console.log(error);
     next(error);

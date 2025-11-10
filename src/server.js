@@ -19,7 +19,8 @@ const app = express();
 connectDB();
 // Middleware
 app.use(express.json());
-app.use(cors(corsOptions));
+// app.use(cors(corsOptions));
+app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(compression());
@@ -42,6 +43,7 @@ app.use("/api/v1/template-category", routers.templateCategoryRouter);
 app.use("/api/v1/template", routers.templateRouter);
 app.use("/api/v1/facebook", routers.facebookRouter);
 app.use("/api/v1/youtube", routers.youtubeRouter);
+app.use("/api/v1/x", routers.xRouter); 
 
 // Cổng HTTPS phải khớp với cổng trong REDIRECT_URI của Facebook
 const PORT = process.env.PORT || 3007;

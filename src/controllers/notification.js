@@ -61,13 +61,9 @@ const createNotification = async (req, res, next) => {
 
 const updateStatusToRead = async (req, res, next) => {
   try {
-    const { id: notificationId } = req.params;
-    const userId = req.userId;
+    const { id } = req.params;
 
-    const notification = await notificationService.updateStatusToRead(
-      notificationId,
-      userId
-    );
+    const notification = await notificationService.updateStatusToRead(id);
     return res.status(StatusCodes.OK).json({
       status: 200,
       message: "Đã đánh dấu thông báo là đã đọc.",

@@ -2,6 +2,18 @@ const { StatusCodes } = require("http-status-codes");
 const postService = require("../services/post.js");
 const ApiError = require("../utils/ApiError.js");
 
+const getPostById = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const post = await postService.getPostById(id);
+    return res
+      .status(StatusCodes.OK)
+      .json({ status: 200, message: "Xử lý thành công", content: post });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 const createPost = async (req, res, next) => {
   try {
     const { caption, hashtags, socialAccountIds, scheduledTime } = req.body;
@@ -140,6 +152,7 @@ const deletePost = async (req, res, next) => {
 };
 
 module.exports = {
+  getPostById,
   createPost,
   approvePost,
   rejectPost,

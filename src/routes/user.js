@@ -8,7 +8,11 @@ router
   .route("/")
   .get(validateToken, authorizeRoles("admin"), userController.getAllUser); // GET /api/users
 router.route("/:id").get(userController.getUserById); // GET /api/users/123
-router.route("/:id").put(userController.updateUser); // PUT /api/users/123
+router
+  .route("/update-password")
+  .put(validateToken, userController.updatePassword);
+router.route("/:id").put(userController.updateUser);
+
 router
   .route("/update-role/:id")
   .put(validateToken, authorizeRoles("user"), userController.updateRole);

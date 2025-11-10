@@ -3,7 +3,8 @@ const axios = require("axios"); // Thư viện để gọi API
 const db = require("../models");
 const fs = require("fs");
 const path = require("path");
-const { getAuthenticatedYouTubeClient } = require("./youtube");
+const { getAuthenticatedYouTubeClient } = require("./youtube"); // prettier-ignore
+const { postTweet, uploadMediaToX, refreshXToken } = require("./x");
 
 const GRAPH_API_VERSION = "v19.0"; // Cập nhật phiên bản API hợp lệ
 
@@ -181,6 +182,84 @@ const publishToYouTube = async (target, post) => {
 };
 
 /**
+ * Đăng bài lên X (Twitter).
+ * @param {object} target - Một bản ghi từ PostTargets.
+ * @param {object} post - Thông tin bài viết (caption, media).
+ * @returns {Promise<string>} URL của bài viết đã đăng.
+ */
+const publishToX = async (target, post) => {
+  let socialAccount = target.SocialAccount;
+  let accessToken = socialAccount.access_token;
+  const textToPost = `${post.caption || ""}\n\n${post.hashtags || ""}`.trim();
+  // Thêm một chuỗi ngẫu nhiên vào cuối bài viết để đảm bảo tính duy nhất
+  const uniqueId = Date.now();
+  const uniqueTextToPost = `${textToPost} ${uniqueId}`;
+
+  const tryPost = async (token) => {
+    const mediaIds = [];
+
+    // Bước 1: Upload media nếu có
+    if (post.media && post.media.length > 0) {
+      console.log(` -> Bắt đầu upload ${post.media.length} media lên X...`);
+      for (const media of post.media) {
+        // Sửa lỗi: Truyền toàn bộ đối tượng `media` để hàm `uploadMediaToX` tự xử lý mimetype
+        const mediaId = await uploadMediaToX(token, media);
+        mediaIds.push(mediaId);
+        console.log(` -> Upload thành công media, ID: ${mediaId}`);
+      }
+    }
+
+    // Bước 2: Đăng tweet với text và media_ids (nếu có)
+    const { id: tweetId } = await postTweet(token, uniqueTextToPost, mediaIds);
+    const username = socialAccount.account_name;
+    return `https://twitter.com/${username}/status/${tweetId}`;
+  };
+
+  try {
+    return await tryPost(accessToken);
+  } catch (error) {
+    // Kiểm tra nếu lỗi là 401 Unauthorized
+    if (error.response && error.response.status === 401) {
+      console.log(
+        ` -> Access token cho X (${socialAccount.account_name}) đã hết hạn. Đang làm mới...`
+      );
+      try {
+        // Lấy refresh token từ DB
+        const currentAccount = await SocialAccount.findByPk(socialAccount.id);
+        if (!currentAccount.refresh_token) {
+          throw new Error("Không tìm thấy refresh token để làm mới.");
+        }
+
+        // Gọi hàm làm mới token
+        const newTokens = await refreshXToken(currentAccount.refresh_token);
+
+        // Cập nhật token mới vào DB
+        await currentAccount.update({
+          access_token: newTokens.access_token,
+          refresh_token: newTokens.refresh_token, // X cũng có thể trả về refresh token mới
+        });
+
+        console.log(" -> Làm mới token thành công. Thử đăng lại...");
+        // Cập nhật lại socialAccount và accessToken để sử dụng cho lần thử lại
+        socialAccount = currentAccount;
+        accessToken = newTokens.access_token;
+
+        // Thử đăng lại với token mới
+        return await tryPost(accessToken);
+      } catch (refreshError) {
+        console.error(" -> Lỗi không thể làm mới token cho X:", refreshError);
+        throw new Error(
+          "Token đã hết hạn và không thể làm mới. Vui lòng kết nối lại tài khoản X."
+        );
+      }
+    }
+    // Ném lại các lỗi khác (không phải 401)
+    throw error;
+  }
+};
+
+/**
+
  * Hàm điều phối, gọi hàm đăng bài tương ứng với nền tảng.
  * @param {object} postToPublish - Đối tượng post đầy đủ thông tin.
  * @param {object} transaction - Giao dịch Sequelize.
@@ -210,6 +289,11 @@ const publishToSocialMedia = async (postToPublish, transaction) => {
           ` -> Đang đăng lên YouTube Channel (Target ID: ${target.id})`
         );
         publishedUrl = await publishToYouTube(target, postToPublish);
+      } else if (platformName === "x" || platformName === "twitter") {
+        console.log(
+          ` -> Đang đăng lên X/Twitter Account (Target ID: ${target.id})`
+        );
+        publishedUrl = await publishToX(target, postToPublish);
       }
 
       // Cập nhật trạng thái của target thành công

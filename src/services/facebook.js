@@ -2,7 +2,7 @@ const axios = require("axios");
 const querystring = require("querystring");
 const db = require("../models");
 
-const GRAPH_API_BASE_URL = "https://graph.facebook.com/v20.0";
+const GRAPH_API_BASE_URL = process.env.GRAPH_API_BASE_URL;
 const CLIENT_ID = process.env.FB_CLIENT_ID;
 const CLIENT_SECRET = process.env.FB_CLIENT_SECRET;
 
@@ -58,19 +58,39 @@ const getUserPages = async (accessToken) => {
 
 const bulkCreateOrUpdatePages = async (pages) => {
   try {
-    const formattedPages = pages.map((page) => ({
-      platform_id: "f4e75033-dde6-476e-be88-02c4a950278a",
-      account_id: page.id,
-      account_name: page.name,
-      fan_counts: page.fan_count,
-      access_token: page.access_token,
-      account_image: page.picture?.data?.url || null,
-    }));
+    // Sử dụng Promise.all để thực hiện các thao tác bất đồng bộ một cách song song
+    const savedPages = await Promise.all(
+      pages.map(async (page) => {
+        // Dữ liệu chuẩn hóa cho page hiện tại
+        const pageData = {
+          platform_id: process.env.ID_PLATFORM_FACEBOOK,
+          account_name: page.name,
+          fan_counts: page.fan_count || 0,
+          access_token: page.access_token,
+          account_image: page.picture?.data?.url || null,
+        };
 
-    const socialAccount = await db.SocialAccount.bulkCreate(formattedPages, {
-      updateOnDuplicate: ["name", "fan_count", "access_token", "picture_url"],
-    });
-    return socialAccount;
+        // Tìm một bản ghi có account_id trùng khớp
+        const existingAccount = await db.SocialAccount.findOne({
+          where: { account_id: page.id },
+        });
+
+        // Nếu đã tồn tại, cập nhật nó
+        if (existingAccount) {
+          await existingAccount.update(pageData);
+          return existingAccount; // Trả về bản ghi đã cập nhật
+        } else {
+          // Nếu chưa tồn tại, tạo mới
+          const newAccount = await db.SocialAccount.create({
+            ...pageData,
+            account_id: page.id, // Thêm account_id khi tạo mới
+          });
+          return newAccount; // Trả về bản ghi mới
+        }
+      })
+    );
+
+    return savedPages;
   } catch (error) {
     console.error("❌ Lỗi thêm/cập nhật:", error);
   }
