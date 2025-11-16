@@ -43,9 +43,10 @@ app.use("/api/v1/template-category", routers.templateCategoryRouter);
 app.use("/api/v1/template", routers.templateRouter);
 app.use("/api/v1/facebook", routers.facebookRouter);
 app.use("/api/v1/youtube", routers.youtubeRouter);
-app.use("/api/v1/x", routers.xRouter); 
+app.use("/api/v1/x", routers.xRouter);
+app.use("/api/v1/ai-message", routers.aiMessageRouter);
+app.use("/api/v1/ai-conversation", routers.aiConversationRouter);
 
-// Cổng HTTPS phải khớp với cổng trong REDIRECT_URI của Facebook
 const PORT = process.env.PORT || 3007;
 
 // Cấu hình SSL/TLS để chạy HTTPS

@@ -1,4 +1,3 @@
-const { get } = require("mongoose");
 const db = require("../models");
 
 const getAllMedia = async () => {

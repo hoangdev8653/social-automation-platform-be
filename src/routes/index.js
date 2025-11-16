@@ -12,6 +12,8 @@ const templateRouter = require("./template.js");
 const facebookRouter = require("./facbook.js");
 const youtubeRouter = require("./youtube.js");
 const xRouter = require("./x.js");
+const aiMessageRouter = require("./ai_message.js");
+const aiConversationRouter = require("./ai_conversation.js");
 
 const routers = {
   userRouter,
@@ -28,6 +30,8 @@ const routers = {
   facebookRouter,
   youtubeRouter,
   xRouter,
+  aiMessageRouter,
+  aiConversationRouter,
 };
 
 module.exports = routers;

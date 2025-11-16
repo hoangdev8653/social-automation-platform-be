@@ -14,6 +14,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@google/genai": "^1.29.0",
     "@google/generative-ai": "^0.24.1",
     "@ngrok/ngrok": "^1.5.2",
     "axios": "^1.12.2",
