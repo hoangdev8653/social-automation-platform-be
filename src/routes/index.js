@@ -14,6 +14,7 @@ const youtubeRouter = require("./youtube.js");
 const xRouter = require("./x.js");
 const aiMessageRouter = require("./ai_message.js");
 const aiConversationRouter = require("./ai_conversation.js");
+const analyticsRouter = require("./analytics.js");
 
 const routers = {
   userRouter,
@@ -32,6 +33,7 @@ const routers = {
   xRouter,
   aiMessageRouter,
   aiConversationRouter,
+  analyticsRouter,
 };
 
 module.exports = routers;

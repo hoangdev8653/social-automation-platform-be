@@ -3,6 +3,8 @@ const router = express.Router();
 const notificationController = require("../controllers/notification.js");
 const validateToken = require("../middlewares/auth.js");
 
+router.route("/").get(validateToken, notificationController.getAllNotification);
+
 router
   .route("/getByUser")
   .get(validateToken, notificationController.getAllNotificationsForUser);

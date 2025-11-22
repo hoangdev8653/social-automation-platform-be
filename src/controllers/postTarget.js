@@ -16,9 +16,9 @@ const getAllPostTargets = async (req, res, next) => {
 
 const createPostTarget = async (req, res, next) => {
   try {
-    const data = req.body; // { post_id, social_account_id, ... }
+    const data = req.body;
     const newTarget = await postTargetService.createPostTarget(data);
-    res.status(StatusCodes.CREATED).json({
+    return res.status(StatusCodes.CREATED).json({
       status: 201,
       message: "Tạo mục tiêu đăng bài thành công.",
       content: newTarget,

@@ -20,16 +20,22 @@ const createPost = async (req, res, next) => {
     const userId = req.userId;
     const files = req.files;
     let parsedSocialAccountIds;
-    try {
-      parsedSocialAccountIds =
-        typeof socialAccountIds === "string"
-          ? JSON.parse(socialAccountIds)
-          : socialAccountIds;
-    } catch (e) {
-      throw new ApiError(
-        StatusCodes.BAD_REQUEST,
-        "Trường socialAccountIds không đúng định dạng JSON."
-      );
+    if (
+      typeof socialAccountIds === "string" &&
+      socialAccountIds.startsWith("[")
+    ) {
+      try {
+        parsedSocialAccountIds = JSON.parse(socialAccountIds);
+      } catch (e) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          "Trường socialAccountIds không đúng định dạng JSON."
+        );
+      }
+    } else {
+      parsedSocialAccountIds = Array.isArray(socialAccountIds)
+        ? socialAccountIds
+        : [socialAccountIds].filter(Boolean);
     }
 
     if (

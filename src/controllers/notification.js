@@ -1,6 +1,20 @@
 const { StatusCodes } = require("http-status-codes");
 const notificationService = require("../services/notification.js");
 
+const getAllNotification = async (req, res, next) => {
+  try {
+    const notifications = await notificationService.getAllNotification();
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Lấy danh sách thông báo thành công.",
+      content: notifications,
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const getAllNotificationsForUser = async (req, res, next) => {
   try {
     // Lấy userId từ token đã được xác thực bởi middleware
@@ -95,6 +109,7 @@ const deleteNotification = async (req, res, next) => {
 };
 
 module.exports = {
+  getAllNotification,
   getAllNotificationsForUser,
   getNotificationById,
   createNotification,

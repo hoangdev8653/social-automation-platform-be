@@ -55,6 +55,11 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
+      // Thêm trường mới vào đây để Sequelize nhận diện
+      total_engagement: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+      },
       createdAt: {
         allowNull: false,
         type: DataTypes.DATE,

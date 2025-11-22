@@ -46,6 +46,7 @@ app.use("/api/v1/youtube", routers.youtubeRouter);
 app.use("/api/v1/x", routers.xRouter);
 app.use("/api/v1/ai-message", routers.aiMessageRouter);
 app.use("/api/v1/ai-conversation", routers.aiConversationRouter);
+app.use("/api/v1/analytics", routers.analyticsRouter);
 
 const PORT = process.env.PORT || 3007;
 
