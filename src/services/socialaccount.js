@@ -1,18 +1,34 @@
 const db = require("../models");
 const ApiError = require("../utils/ApiError");
 
-const getAllSocialAccounts = async () => {
+const getAllSocialAccounts = async (paginationOptions) => {
   try {
-    const socialaccounts = await db.SocialAccount.findAll({
-      include: [
-        {
-          model: db.Platform,
-          as: "platform",
-          attributes: ["id", "name", "image"],
-        },
-      ],
-    });
-    return socialaccounts;
+    const page = parseInt(paginationOptions.page, 10);
+    const limit = parseInt(paginationOptions.limit, 10);
+    const offset = (page - 1) * limit;
+    const { count: totalItem, rows: socialaccounts } =
+      await db.SocialAccount.findAndCountAll({
+        offset: offset,
+        limit: limit,
+        distinct: true,
+        col: "id",
+        include: [
+          {
+            model: db.Platform,
+            as: "platform",
+            attributes: ["id", "name", "image"],
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+    const totalPages = Math.ceil(totalItem / limit);
+
+    return {
+      socialaccounts,
+      totalPages,
+      currentPage: page,
+      totalItem,
+    };
   } catch (error) {
     throw error;
   }

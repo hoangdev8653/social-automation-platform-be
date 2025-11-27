@@ -3,11 +3,19 @@ const socialaccountService = require("../services/socialaccount.js");
 
 const getAllSocialAccounts = async (req, res, next) => {
   try {
-    const socialaccounts = await socialaccountService.getAllSocialAccounts();
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await socialaccountService.getAllSocialAccounts({
+      page,
+      limit,
+    });
     return res.status(StatusCodes.OK).json({
       status: 200,
       message: "Xử lý thành công",
-      content: socialaccounts,
+      content: data.socialaccounts,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalItem: data.totalItem,
     });
   } catch (error) {
     console.log(error);

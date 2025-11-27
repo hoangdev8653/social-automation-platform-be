@@ -2,40 +2,48 @@ const db = require("../models");
 const ApiError = require("../utils/ApiError");
 const { StatusCodes } = require("http-status-codes");
 
-/**
- * Lấy tất cả các mục tiêu đăng bài
- */
-const getAllPostTargets = async () => {
+const getAllPostTargets = async (paginationOptions) => {
   try {
-    const targets = await db.PostTargets.findAll({
-      include: [
-        {
-          model: db.Post,
-          attributes: ["id", "caption", "status"],
-        },
-        {
-          model: db.SocialAccount,
-          attributes: ["id", "account_name", "account_image"],
-          include: {
-            model: db.Platform,
-            as: "platform",
-            attributes: ["name", "image"],
+    const page = parseInt(paginationOptions.page, 10);
+    const limit = parseInt(paginationOptions.limit, 10);
+    const offset = (page - 1) * limit;
+    const { count: totalItem, rows: post } =
+      await db.PostTargets.findAndCountAll({
+        offset: offset,
+        limit: limit,
+        distinct: true,
+        col: "id",
+        include: [
+          {
+            model: db.Post,
+            attributes: ["id", "caption", "status"],
           },
-        },
-      ],
-      order: [["createdAt", "DESC"]],
-    });
-    return targets;
+          {
+            model: db.SocialAccount,
+            attributes: ["id", "account_name", "account_image"],
+            include: {
+              model: db.Platform,
+              as: "platform",
+              attributes: ["name", "image"],
+            },
+          },
+        ],
+        order: [["createdAt", "DESC"]],
+      });
+
+    const totalPages = Math.ceil(totalItem / limit);
+
+    return {
+      post,
+      totalPages,
+      currentPage: page,
+      totalItem,
+    };
   } catch (error) {
     throw error;
   }
 };
 
-/**
- * Tạo một mục tiêu đăng bài mới
- * Lưu ý: Chức năng này thường được gọi nội bộ khi tạo bài viết.
- * Việc tạo thủ công cần cẩn trọng.
- */
 const createPostTarget = async (data) => {
   const { post_id, social_account_id } = data;
   // Kiểm tra sự tồn tại của post và social_account

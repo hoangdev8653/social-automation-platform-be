@@ -3,11 +3,16 @@ const postTargetService = require("../services/postTarget.js");
 
 const getAllPostTargets = async (req, res, next) => {
   try {
-    const targets = await postTargetService.getAllPostTargets();
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await postTargetService.getAllPostTargets({ page, limit });
     res.status(StatusCodes.OK).json({
       status: 200,
       message: "Lấy danh sách mục tiêu đăng bài thành công.",
-      content: targets,
+      content: data.post,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalItem: data.totalItem,
     });
   } catch (error) {
     next(error);

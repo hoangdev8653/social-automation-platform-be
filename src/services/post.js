@@ -8,6 +8,7 @@ const {
   Platform, // Thêm Platform
   PostMedia,
   Notification, // Import model Notification
+  ActivityLog, // Thêm ActivityLog để ghi log
 } = require("../models");
 const ApiError = require("../utils/ApiError");
 const { deleteFromCloud } = require("../middlewares/cloudinary");
@@ -96,11 +97,44 @@ const createPost = async (data) => {
 
     // Nếu tất cả thành công, commit transaction
     await t.commit();
+
+    // Ghi log hoạt động
+    // Tách ra khỏi transaction chính để nếu ghi log lỗi cũng không ảnh hưởng đến việc tạo bài viết
+    try {
+      const captionSnippet = newPost.caption
+        ? `${newPost.caption.substring(0, 30)}...`
+        : "(Không có caption)";
+      await ActivityLog.create({
+        user_id: userId, // Sửa lại tên trường cho đúng với model
+        action: "Tạo bài viết",
+        target_id: newPost.id,
+        target_type: "post",
+        details: `Nhân viên tạo bài viết "${captionSnippet}" và chuyển sang trạng thái chờ duyệt.`,
+      });
+    } catch (logError) {
+      console.error("Ghi log hoạt động thất bại:", logError);
+    }
+
     return newPost; // Trả về bài post vừa tạo
   } catch (error) {
     // Nếu có bất kỳ lỗi nào, rollback tất cả các thay đổi
     await t.rollback();
+
+    // Ghi log cho hành động tạo bài viết thất bại
+    try {
+      await ActivityLog.create({
+        user_id: userId, // Sửa lại tên trường cho đúng với model
+        action: "Tạo bài viết thất bại",
+        target_type: "post", // target_id không có vì post chưa được tạo thành công
+        details: `Tạo bài viết thất bại. Lỗi: ${error.message}`,
+      });
+    } catch (logError) {
+      // Nếu việc ghi log cũng thất bại, chỉ ghi ra console để không ảnh hưởng luồng chính
+      console.error("Ghi log cho lỗi tạo bài viết cũng thất bại:", logError);
+    }
+
     console.error("Failed to create post:", error);
+
     throw new ApiError(
       StatusCodes.INTERNAL_SERVER_ERROR,
       "Tạo bài viết thất bại."
@@ -144,7 +178,7 @@ const approvePost = async (data) => {
     const postSnippet = post.caption
       ? post.caption.substring(0, 50) + "..."
       : "không có tiêu đề";
-    const a = await Notification.create(
+    await Notification.create(
       {
         user_id: post.user_id, // ID của người tạo bài viết
         type: "post_approved",
@@ -155,16 +189,65 @@ const approvePost = async (data) => {
       { transaction: t }
     );
 
-    if (newStatus === "approved") {
-      // Gọi hàm đăng bài ngay bên trong transaction này
-      await publishPost(postId, t);
+    // Dựa trên trạng thái mới, ghi log và thực hiện hành động tương ứng
+    if (newStatus === "scheduled") {
+      // Ghi log cho bài viết được lên lịch thành công
+      await ActivityLog.create(
+        {
+          user_id: adminId, // Sửa lại tên trường cho đúng với model
+          action: "Lên lịch bài viết",
+          target_id: post.id,
+          target_type: "post",
+          details: `Bài viết "${postSnippet}" đã được duyệt và lên lịch đăng vào lúc ${post.scheduled_time}.`,
+        },
+        { transaction: t }
+      );
+    } else if (newStatus === "approved") {
+      // Nếu bài viết được đăng ngay, gọi hàm publish và ghi log kết quả
+      // Trạng thái 'approved' ở đây chỉ là tín hiệu để đăng ngay, trạng thái thực tế sẽ là 'publishing'
+      try {
+        await publishPost(postId, t);
+        await ActivityLog.create(
+          {
+            user_id: adminId, // Sửa lại tên trường cho đúng với model
+            action: "Bắt đầu đăng bài",
+            target_id: post.id,
+            target_type: "post",
+            details: `Bài viết "${postSnippet}" đã được duyệt và bắt đầu quá trình đăng.`,
+          },
+          { transaction: t }
+        );
+      } catch (publishError) {
+        // Gán lỗi vào đối tượng error để khối catch bên ngoài có thể truy cập và ghi log chi tiết
+        error.message = publishError.message;
+        error.post = post; // Gán post vào lỗi để có thể lấy snippet
+
+        // Nếu quá trình đăng gặp lỗi, ném lỗi để rollback transaction và ghi log thất bại ở khối catch bên ngoài
+        throw publishError;
+      }
     }
 
     await t.commit();
     return post;
   } catch (error) {
     await t.rollback();
-    // Ném lỗi ra ngoài để controller có thể bắt
+
+    // Ghi log lỗi chung, bao gồm cả lỗi khi đăng bài
+    try {
+      const postSnippet = error.post?.caption
+        ? `${error.post.caption.substring(0, 50)}...`
+        : `(ID: ${postId})`;
+      await ActivityLog.create({
+        user_id: adminId, // Sửa lại tên trường cho đúng với model
+        action: "Đăng bài thất bại", // Action cụ thể hơn cho lỗi khi đăng ngay
+        target_id: postId,
+        target_type: "post",
+        details: `Duyệt hoặc đăng bài viết "${postSnippet}" thất bại. Lỗi: ${error.message}`,
+      });
+    } catch (logError) {
+      console.error("Ghi log lỗi duyệt bài cũng thất bại:", logError);
+    }
+
     throw error;
   }
 };
@@ -235,6 +318,22 @@ const rejectPost = async (data) => {
       { transaction: t }
     );
 
+    // Ghi log hành động từ chối bài viết
+    try {
+      await ActivityLog.create(
+        {
+          user_id: adminId, // Sửa lại tên trường cho đúng với model
+          action: "Từ chối bài viết",
+          target_id: post.id,
+          target_type: "post",
+          details: `Admin đã từ chối bài viết "${postSnippet}". Lý do: ${post.rejected_reason}`,
+        },
+        { transaction: t }
+      ); // Thêm vào transaction
+    } catch (logError) {
+      console.error("Ghi log từ chối bài thất bại:", logError);
+    }
+
     await t.commit();
     return post;
   } catch (error) {
@@ -243,26 +342,39 @@ const rejectPost = async (data) => {
   }
 };
 
-const getAllPosts = async () => {
+const getAllPosts = async (paginationOptions) => {
   try {
-    const posts = await Post.findAll({
+    const page = parseInt(paginationOptions.page, 10);
+    const limit = parseInt(paginationOptions.limit, 10);
+    const offset = (page - 1) * limit;
+    const { count: totalItem, rows: posts } = await Post.findAndCountAll({
+      offset: offset,
+      limit: limit,
+      distinct: true,
+      col: "id",
       include: [
         {
-          model: Media, // Sửa lỗi: Alias sai
-          as: "media", // Alias đúng là "media" theo model/post.js
+          model: Media,
+          as: "media",
           attributes: ["id", "type", "url"],
-          through: { attributes: [] }, // Không lấy thông tin từ bảng trung gian PostMedia
+          through: { attributes: [] },
         },
         {
           model: User,
-          as: "author", // Alias đúng là "author" theo model/post.js
+          as: "author",
           attributes: ["id", "name", "email"],
         },
-        // Nếu bạn muốn lấy cả các target (social accounts) thì thêm include ở đây
       ],
-      order: [["createdAt", "DESC"]], // Sắp xếp bài viết mới nhất lên đầu
+      order: [["createdAt", "DESC"]],
     });
-    return posts;
+    const totalPages = Math.ceil(totalItem / limit);
+
+    return {
+      posts,
+      totalPages,
+      currentPage: page,
+      totalItem,
+    };
   } catch (error) {
     console.error("Failed to get all posts:", error);
     throw new ApiError(
@@ -272,7 +384,7 @@ const getAllPosts = async () => {
   }
 };
 
-const deletePost = async (postId) => {
+const deletePost = async (postId, deletedByUserId) => {
   const t = await sequelize.transaction();
   try {
     const post = await Post.findByPk(postId, {
@@ -299,6 +411,23 @@ const deletePost = async (postId) => {
     }
 
     await post.destroy({ transaction: t });
+
+    // Ghi log hành động xóa bài viết
+    try {
+      const captionSnippet = post.caption
+        ? `${post.caption.substring(0, 50)}...`
+        : "(Không có caption)";
+      await ActivityLog.create({
+        user_id: deletedByUserId, // Sửa lại tên trường cho đúng với model
+        action: "Xóa bài viết",
+        target_id: postId,
+        target_type: "post",
+        details: `Đã xóa bài viết "${captionSnippet}".`,
+      });
+    } catch (logError) {
+      console.error("Ghi log xóa bài viết thất bại:", logError);
+    }
+
     await t.commit();
     return { message: "Xóa bài viết thành công." };
   } catch (error) {

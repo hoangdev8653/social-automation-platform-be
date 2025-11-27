@@ -3,11 +3,14 @@ const mediaService = require("../services/media.js");
 
 const getAllMedia = async (req, res, next) => {
   try {
-    const media = await mediaService.getAllMedia();
+    const { page = 1, limit = 10 } = req.query;
+    const result = await mediaService.getAllMedia({ page, limit });
     return res.status(StatusCodes.OK).json({
       status: 200,
       message: "Xử lý thành công",
-      content: media,
+      content: result.data,
+      totalPages: result.totalPages,
+      currentPage: result.currentPage,
     });
   } catch (error) {
     console.log(error);

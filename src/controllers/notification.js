@@ -54,9 +54,6 @@ const getNotificationById = async (req, res, next) => {
   }
 };
 
-// Hàm này thường không nên có API public trừ khi dành cho admin
-// vì thông báo được tạo tự động bởi các service khác.
-// Giữ lại để tham khảo hoặc cho mục đích quản trị.
 const createNotification = async (req, res, next) => {
   try {
     const data = req.body;

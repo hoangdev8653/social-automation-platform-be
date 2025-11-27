@@ -3,10 +3,17 @@ const templateService = require("../services/template.js");
 
 const getAllTemplate = async (req, res, next) => {
   try {
-    const template = await templateService.getAllTemplate();
-    return res
-      .status(StatusCodes.OK)
-      .json({ status: 200, message: "Xử lý thành công", content: template });
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await templateService.getAllTemplate({ page, limit });
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Xử lý thành công",
+      content: data.template,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalItem: data.totalItem,
+    });
   } catch (error) {
     console.log(error);
     next(error);
@@ -28,8 +35,9 @@ const getTemplateById = async (req, res, next) => {
 
 const createTemplate = async (req, res, next) => {
   try {
+    const userId = req.userId;
     const { type, category_id, title, content } = req.body;
-    const template = await templateService.createTemplate({
+    const template = await templateService.createTemplate(userId, {
       type,
       category_id,
       title,
@@ -68,7 +76,8 @@ const updateTemplate = async (req, res, next) => {
 const deleteTemplate = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const template = await templateService.deleteTemplate(id);
+    const userId = req.userId;
+    const template = await templateService.deleteTemplate(userId, { id });
     return res
       .status(StatusCodes.OK)
       .json({ status: 200, message: "Xử lý thành công", content: template });

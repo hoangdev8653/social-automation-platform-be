@@ -15,6 +15,7 @@ const xRouter = require("./x.js");
 const aiMessageRouter = require("./ai_message.js");
 const aiConversationRouter = require("./ai_conversation.js");
 const analyticsRouter = require("./analytics.js");
+const activityLogRouter = require("./activity_log.js");
 
 const routers = {
   userRouter,
@@ -34,6 +35,7 @@ const routers = {
   aiMessageRouter,
   aiConversationRouter,
   analyticsRouter,
+  activityLogRouter,
 };
 
 module.exports = routers;

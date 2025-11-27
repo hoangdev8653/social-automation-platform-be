@@ -129,11 +129,15 @@ const rejectPost = async (req, res, next) => {
 
 const getAllPosts = async (req, res, next) => {
   try {
-    const posts = await postService.getAllPosts();
+    const { page = 1, limit = 10 } = req.query;
+    const data = await postService.getAllPosts({ page, limit });
     return res.status(StatusCodes.OK).json({
       status: 200,
       message: "Lấy danh sách bài viết thành công!",
-      content: posts,
+      content: data.posts,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalItem: data.totalItem,
     });
   } catch (error) {
     console.error("Error getting all posts:", error);

@@ -3,10 +3,17 @@ const userService = require("../services/user.js");
 
 const getAllUser = async (req, res, next) => {
   try {
-    const users = await userService.getAllUser();
-    res
-      .status(StatusCodes.OK)
-      .json({ status: 200, message: "Xử lý thành công", data: users });
+    const { page = 1, limit = 10 } = req.query;
+
+    const data = await userService.getAllUser({ page, limit });
+    res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Xử lý thành công",
+      data: data.users,
+      totalPages: data.totalPages,
+      currentPage: data.currentPage,
+      totalItem: data.totalItem,
+    });
   } catch (error) {
     next(error);
   }
@@ -85,7 +92,21 @@ const lockAccount = async (req, res, next) => {
   try {
     const userId = req.userId;
     const { id } = req.params;
-    const user = await userService.lockAccount(id);
+    const user = await userService.lockAccount(userId, { id });
+    return res
+      .status(StatusCodes.OK)
+      .json({ status: 200, messsage: "Xử lý thành công", content: user });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+const unLockAccount = async (req, res, next) => {
+  try {
+    const userId = req.userId;
+    const { id } = req.params;
+    const user = await userService.unLockAccount(userId, { id });
     return res
       .status(StatusCodes.OK)
       .json({ status: 200, messsage: "Xử lý thành công", content: user });
@@ -115,5 +136,6 @@ module.exports = {
   updateRole,
   resetPassword,
   lockAccount,
+  unLockAccount,
   deleteUser,
 };
