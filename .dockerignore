@@ -1,0 +1,47 @@
+# --- Dependencies ---
+node_modules
+npm-debug.log
+yarn-error.log
+
+# --- Version Control & IDE ---
+.git
+.gitignore
+.vscode
+.idea
+*.swp
+*.swo
+
+# --- Environment & Secrets (Rất quan trọng) ---
+.env
+.env.*
+*.key
+*.cert
+*.pem
+server.key
+server.cert
+
+# --- Docker files (Không cần thiết bên trong container) ---
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# --- Documentation & Logs ---
+README.md
+LICENSE
+docs
+logs
+*.log
+coverage/
+
+# --- Build outputs (Nếu bạn có dùng TypeScript hoặc build step) ---
+dist
+build
+
+# --- File rác hệ điều hành ---
+.DS_Store
+Thumbs.db
+
+# --- Các file tạm khác trong dự án của bạn ---
+sequelize-helper.txt
+.sequelizerc
+.babelrc

@@ -1,0 +1,48 @@
+version: "3.8"
+
+services:
+  # --- Service Backend Node.js ---
+  app:
+    build: .
+    container_name: node_backend_app
+    restart: always
+    # Nạp toàn bộ file .env vào trong Node.js
+    env_file:
+      - .env
+    # Ghi đè lại biến DB_HOST để trỏ sang container database
+    environment:
+      - DB_HOST=postgres_db
+      - PORT=3007
+    ports:
+      - "3008:3007" # Map đúng port 3007 như file env của bạn
+    depends_on:
+      - postgres_db
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - app-network
+
+  # --- Service Database Postgres ---
+  postgres_db:
+    image: postgres:15-alpine
+    container_name: postgres_container
+    restart: always
+    # Ánh xạ biến từ file .env của bạn sang biến mà Postgres hiểu
+    environment:
+      POSTGRES_USER: ${DB_USERNAME} # Lấy từ DB_USERNAME
+      POSTGRES_PASSWORD: ${DB_PASSWORD} # Lấy từ DB_PASSWORD
+      POSTGRES_DB: ${DB_NAME} # Lấy từ DB_NAME
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+volumes:
+  pgdata:
+
+networks:
+  app-network:
+    driver: bridge
