@@ -20,12 +20,22 @@ const login = async (req, res, next) => {
       email,
       password,
     });
+
+    // Loại bỏ mật khẩu khỏi đối tượng user trước khi trả về
+    const { password: removedPassword, ...userInfo } = user.dataValues;
+
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Chỉ bật secure ở môi trường production (HTTPS)
+      path: "/",
+      sameSite: "strict",
+    });
+
     return res.status(StatusCodes.OK).json({
       status: 200,
       message: "Xử lý thành công",
-      content: user,
+      content: userInfo,
       accessToken,
-      refreshToken,
     });
   } catch (error) {
     next(error);
@@ -35,7 +45,8 @@ const login = async (req, res, next) => {
 const logout = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const user = await authService.logout(userId);
+    res.clearCookie("refreshToken");
+    await authService.logout(userId);
     return res
       .status(StatusCodes.OK)
       .json({ status: 200, message: "Xử lý thành công" });
@@ -46,11 +57,22 @@ const logout = async (req, res, next) => {
 
 const refreshToken = async (req, res, next) => {
   try {
-    const { refreshToken } = req.body;
-    const user = await authService.refreshToken(refreshToken);
-    return res
-      .status(StatusCodes.OK)
-      .json({ status: 200, message: "Xử lý thành công", content: user });
+    const oldRefreshToken = req.cookies.refreshToken;
+
+    const { accessToken, refreshToken } = await authService.refreshToken(
+      oldRefreshToken
+    );
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production", // Chỉ bật secure ở môi trường production (HTTPS)
+      path: "/",
+      sameSite: "strict",
+    });
+    return res.status(StatusCodes.OK).json({
+      status: 200,
+      message: "Xử lý thành công",
+      accessToken,
+    });
   } catch (error) {
     next(error);
   }

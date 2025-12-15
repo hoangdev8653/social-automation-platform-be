@@ -10,14 +10,26 @@ const getAllMedia = async (paginationOptions) => {
     const { count, rows } = await db.Media.findAndCountAll({
       offset: offset,
       limit: limit,
-      order: [["createdAt", "DESC"]], // Sắp xếp theo ngày tạo mới nhất
+      order: [["createdAt", "DESC"]],
     });
     const totalPages = Math.ceil(count / limit);
+    const summary = {
+      totalImage: 0,
+      totalVideo: 0,
+      totalAudio: 0,
+      totalSize: 0,
+    };
+    const media = await db.Media.findAll();
+    summary.totalImage = media.filter((m) => m.type === "image").length;
+    summary.totalVideo = media.filter((m) => m.type === "video").length;
+    summary.totalAudio = media.filter((m) => m.type === "audio").length;
+    summary.totalSize = media.reduce((acc, m) => acc + m.metadata.size, 0);
     return {
       data: rows,
       totalPages: totalPages,
       currentPage: page,
-      totalItems: count,
+      totalItem: count,
+      summary,
     };
   } catch (error) {
     throw error;

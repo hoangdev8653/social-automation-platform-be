@@ -22,6 +22,9 @@ router
 router
   .route("/lock-account/:id")
   .put(validateToken, authorizeRoles("admin"), userController.lockAccount);
+router
+  .route("/unlock-account/:id")
+  .put(validateToken, authorizeRoles("admin"), userController.unLockAccount);
 router.route("/:id").delete(authorizeRoles("admin"), userController.deleteUser);
 
 module.exports = router;

@@ -1,6 +1,7 @@
 const { google } = require("googleapis");
 const db = require("../models");
 const ApiError = require("../utils/ApiError");
+
 const oauth2Client = new google.auth.OAuth2(
   process.env.GOOGLE_CLIENT_ID,
   process.env.GOOGLE_CLIENT_SECRET,
@@ -8,18 +9,12 @@ const oauth2Client = new google.auth.OAuth2(
 );
 
 const scopes = [
-  "https://www.googleapis.com/auth/youtube.upload", // Thêm scope để đăng video
+  "https://www.googleapis.com/auth/youtube.upload",
   "https://www.googleapis.com/auth/youtube.force-ssl",
   "https://www.googleapis.com/auth/userinfo.profile",
   "https://www.googleapis.com/auth/userinfo.email",
 ];
 
-/**
- * Khởi tạo một YouTube client đã được xác thực.
- * Tự động làm mới access token nếu nó đã hết hạn.
- * @param {string} socialAccountId - ID của SocialAccount trong DB.
- * @returns {Promise<object>} - Một instance của YouTube API client.
- */
 const getAuthenticatedYouTubeClient = async (socialAccountId) => {
   const socialAccount = await db.SocialAccount.findByPk(socialAccountId);
 
@@ -30,7 +25,6 @@ const getAuthenticatedYouTubeClient = async (socialAccountId) => {
     );
   }
 
-  // Tạo một instance oauth2Client mới cho mỗi lần gọi để tránh xung đột
   const client = new google.auth.OAuth2(
     process.env.GOOGLE_CLIENT_ID,
     process.env.GOOGLE_CLIENT_SECRET,
@@ -42,16 +36,12 @@ const getAuthenticatedYouTubeClient = async (socialAccountId) => {
     refresh_token: socialAccount.refresh_token,
   });
 
-  // Luôn làm mới token trước khi sử dụng để đảm bảo tính hợp lệ.
-  // google-auth-library sẽ chỉ thực hiện yêu cầu mạng nếu token thực sự sắp hết hạn.
   try {
     const { credentials } = await client.refreshAccessToken();
-    // Cập nhật credentials mới vào client và DB
     client.setCredentials(credentials);
     console.log(
       `Access token cho tài khoản ${socialAccount.account_name} đã được làm mới.`
     );
-    // Chỉ cập nhật access_token mới, giữ nguyên refresh_token nếu nó không thay đổi.
     if (credentials.access_token) {
       await socialAccount.update({ access_token: credentials.access_token });
     }

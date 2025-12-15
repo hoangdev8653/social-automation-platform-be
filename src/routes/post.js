@@ -20,6 +20,13 @@ router
   .route("/:id/reject")
   .patch(validateToken, authorizeRoles("admin"), postController.rejectPost);
 router
+  .route("/:id/reschedule")
+  .patch(
+    validateToken,
+    authorizeRoles("admin", "user"),
+    postController.reschedulePost
+  );
+router
   .route("/:id")
   .delete(validateToken, authorizeRoles("admin"), postController.deletePost);
 

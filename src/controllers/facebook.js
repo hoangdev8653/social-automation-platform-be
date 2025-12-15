@@ -1,4 +1,8 @@
 const facebookService = require("../services/facebook.js");
+const {
+  sendOAuthSuccess,
+  sendOAuthError,
+} = require("../utils/oauthResponse.js");
 
 const getFacebookAuthUrl = async (req, res, next) => {
   const authUrl = facebookService.getFacebookAuthUrl();
@@ -7,6 +11,9 @@ const getFacebookAuthUrl = async (req, res, next) => {
 
 const handleFacebookCallback = async (req, res) => {
   const { code } = req.query;
+
+  const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
+
   try {
     const shortLivedToken = await facebookService.getAccessToken(code);
     const longLivedToken = await facebookService.getLongLivedUserAccessToken(
@@ -15,21 +22,17 @@ const handleFacebookCallback = async (req, res) => {
     let pages = await facebookService.getUserPages(longLivedToken);
     const storedPages = await facebookService.bulkCreateOrUpdatePages(pages);
 
-    res.send(`
-      <script>
-        window.opener.postMessage({
-          type: 'oauth_success', // Sử dụng một type chung
-          platform: 'facebook',    // Thêm platform để front-end biết nguồn
-          pages: ${JSON.stringify(
-            storedPages
-          )} // Chỉ gửi dữ liệu đã làm sạch về frontend
-        }, '${process.env.CLIENT_URL || "http://localhost:5173"}');
-        window.close();
-      </script>
-    `);
+    const responseData = {
+      type: "oauth_success",
+      platform: "facebook",
+      pages: storedPages,
+    };
+
+    sendOAuthSuccess(res, clientUrl, responseData, "Facebook");
   } catch (err) {
     console.error("Facebook OAuth Error:", err.response?.data || err);
-    res.send("<h3>Đăng nhập thất bại!</h3>");
+
+    sendOAuthError(res, err, "Facebook");
   }
 };
 

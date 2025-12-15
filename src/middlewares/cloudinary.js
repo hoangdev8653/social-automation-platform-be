@@ -49,7 +49,7 @@ const fileFilter = (req, file, cb) => {
 const uploadCloud = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 1024 * 1024 * 20 }, // Giới hạn kích thước file là 20MB
+  limits: { fileSize: 1024 * 1024 * 100 }, // Giới hạn kích thước file là 100MB
 });
 
 const deleteFromCloud = async (publicId) => {

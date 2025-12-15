@@ -285,5 +285,6 @@ module.exports = {
   updateRole,
   resetPassword,
   lockAccount,
+  unLockAccount,
   deleteUser,
 };

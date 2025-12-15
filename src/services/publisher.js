@@ -29,7 +29,7 @@ const publishToFacebook = async (target, post) => {
   try {
     // Trường hợp 1: Đăng video
     if (hasVideo) {
-      const videoUrl = post.media[0].url; // Lấy URL public từ Cloudinary
+      const videoUrl = post.media.find((m) => m.type === "video").url; // Lấy URL public từ Cloudinary
       const endpoint = `https://graph-video.facebook.com/${GRAPH_API_VERSION}/${pageId}/videos`;
       const response = await axios.post(endpoint, {
         access_token: pageAccessToken,
@@ -226,6 +226,8 @@ const publishToX = async (target, post) => {
       try {
         // Lấy refresh token từ DB
         const currentAccount = await SocialAccount.findByPk(socialAccount.id);
+        console.log(currentAccount);
+
         if (!currentAccount.refresh_token) {
           throw new Error("Không tìm thấy refresh token để làm mới.");
         }

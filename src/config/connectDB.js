@@ -10,8 +10,8 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST, // thay đổi nếu cần
-    dialect: process.env.DB_DIALECT, // 'mysql' | 'sqlite' | 'postgres' | 'mssql'
-    // Các tùy chọn khác nếu cần, ví dụ: logging: false
+    dialect: process.env.DB_DIALECT || "postgres", // 'mysql' | 'sqlite' | 'postgres' | 'mssql'
+    logging: false,
   }
 );
 

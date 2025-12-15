@@ -8,6 +8,7 @@ const {
   Platform, // Thêm Platform
   PostMedia,
   Notification, // Import model Notification
+  Sequelize, // Import Sequelize để dùng Op
   ActivityLog, // Thêm ActivityLog để ghi log
 } = require("../models");
 const ApiError = require("../utils/ApiError");
@@ -54,13 +55,14 @@ const createPost = async (data) => {
     // BƯỚC 1: Tạo bản ghi Post để lấy `post_id`
     // Tất cả các thao tác create/bulkCreate bên dưới đều có `{ transaction: t }`
     // để đảm bảo chúng thuộc cùng một giao dịch.
+    const initialStatus = scheduledTime ? "pending_approval" : "draft";
     const newPost = await Post.create(
       {
         user_id: userId,
         caption,
         hashtags,
         scheduled_time: scheduledTime,
-        status: scheduledTime ? "scheduled" : "draft", // Nếu có lịch thì chuyển status
+        status: initialStatus, // Nếu có lịch thì chuyển sang chờ duyệt
       },
       { transaction: t }
     );
@@ -91,7 +93,7 @@ const createPost = async (data) => {
     const postTargetsToCreate = socialAccountIds.map((accountId) => ({
       post_id: newPost.id,
       social_account_id: accountId,
-      status: "pending",
+      status: "pending", // Luôn khởi tạo là pending, chờ duyệt hoặc chờ đăng
     }));
     await PostTargets.bulkCreate(postTargetsToCreate, { transaction: t });
 
@@ -153,36 +155,70 @@ const approvePost = async (data) => {
       throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
     }
 
-    if (["approved", "publishing"].includes(post.status)) {
+    if (["approved", "publishing", "scheduled"].includes(post.status)) {
       post.dataValues.message = `Bài viết đã được duyệt và đang trong hàng đợi xử lý (trạng thái: ${post.status}).`;
       await t.commit(); // Vẫn commit vì không có lỗi, chỉ là không làm gì thêm
       return post;
     }
 
-    if (!["draft", "pending_approval", "failed"].includes(post.status)) {
+    // Chỉ cho phép duyệt các bài viết ở trạng thái nháp, chờ duyệt hoặc đã thất bại
+    if (
+      !["draft", "pending_approval", "failed", "missed_schedule"].includes(
+        post.status
+      )
+    ) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         `Không thể duyệt bài viết đang ở trạng thái '${post.status}'.`
       );
     }
 
-    const newStatus = post.scheduled_time ? "scheduled" : "approved";
+    const postSnippet = post.caption
+      ? post.caption.substring(0, 50) + "..."
+      : "không có tiêu đề";
+
+    const now = new Date();
+    const isScheduledInFuture =
+      post.scheduled_time && post.scheduled_time > now;
+    let newStatus;
+    let notificationMessage;
+    let notificationType = "post_approved";
+
+    if (isScheduledInFuture) {
+      // Kịch bản 1: Duyệt đúng hạn -> Lên lịch đăng
+      newStatus = "scheduled";
+      notificationMessage = `Bài viết "${postSnippet}" của bạn đã được duyệt và sẽ được đăng vào lúc ${post.scheduled_time}.`;
+    } else if (post.scheduled_time) {
+      // Kịch bản 2: Duyệt sau khi đã lỡ lịch -> Yêu cầu nhân viên đặt lại lịch
+      newStatus = "missed_schedule";
+      notificationMessage = `Bài viết "${postSnippet}" đã được duyệt nhưng bị lỡ lịch. Vui lòng đặt lại thời gian đăng.`;
+      notificationType = "post_missed_schedule";
+    } else {
+      // Kịch bản 3: Đăng ngay, không hẹn giờ
+      newStatus = "approved"; // Tín hiệu để đăng ngay
+      notificationMessage = `Bài viết "${postSnippet}" của bạn đã được duyệt và đang được đăng.`;
+    }
 
     post.status = newStatus;
     post.approved_by = adminId;
     post.approved_at = new Date();
     await post.save({ transaction: t });
 
-    // TẠO THÔNG BÁO CHO NGƯỜI DÙNG
-    // Lấy một đoạn caption ngắn để hiển thị trong thông báo
-    const postSnippet = post.caption
-      ? post.caption.substring(0, 50) + "..."
-      : "không có tiêu đề";
+    // Nếu là bài viết lên lịch (scheduled), cập nhật trạng thái target thành scheduled.
+    // Nếu là đăng ngay (approved), giữ nguyên hoặc cập nhật để chuẩn bị publish.
+    if (["scheduled", "missed_schedule"].includes(newStatus)) {
+      await PostTargets.update(
+        { status: newStatus },
+        { where: { post_id: post.id }, transaction: t }
+      );
+    }
+
+    // Thông báo duyệt bài như bình thường
     await Notification.create(
       {
-        user_id: post.user_id, // ID của người tạo bài viết
-        type: "post_approved",
-        message: `Bài viết "${postSnippet}" của bạn đã được duyệt.`,
+        user_id: post.user_id,
+        type: notificationType,
+        message: notificationMessage,
         related_entity_id: post.id,
         related_entity_type: "post",
       },
@@ -203,6 +239,7 @@ const approvePost = async (data) => {
         { transaction: t }
       );
     } else if (newStatus === "approved") {
+      // Chỉ đăng ngay khi không có lịch hẹn
       // Nếu bài viết được đăng ngay, gọi hàm publish và ghi log kết quả
       // Trạng thái 'approved' ở đây chỉ là tín hiệu để đăng ngay, trạng thái thực tế sẽ là 'publishing'
       try {
@@ -219,8 +256,7 @@ const approvePost = async (data) => {
         );
       } catch (publishError) {
         // Gán lỗi vào đối tượng error để khối catch bên ngoài có thể truy cập và ghi log chi tiết
-        error.message = publishError.message;
-        error.post = post; // Gán post vào lỗi để có thể lấy snippet
+        publishError.post = post; // Gán post vào lỗi để có thể lấy snippet
 
         // Nếu quá trình đăng gặp lỗi, ném lỗi để rollback transaction và ghi log thất bại ở khối catch bên ngoài
         throw publishError;
@@ -290,8 +326,8 @@ const rejectPost = async (data) => {
       throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
     }
 
-    // Chỉ cho phép từ chối bài viết đang chờ duyệt
-    if (post.status !== "pending_approval" && post.status !== "draft") {
+    // Cho phép từ chối bài viết đang chờ duyệt hoặc đã lỡ lịch duyệt
+    if (!["pending_approval", "draft"].includes(post.status)) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
         `Không thể từ chối bài viết đang ở trạng thái '${post.status}'.`
@@ -302,6 +338,12 @@ const rejectPost = async (data) => {
     post.status = "rejected";
     post.rejected_reason = reason || "Không có lý do cụ thể.";
     await post.save({ transaction: t });
+
+    // Cập nhật trạng thái các target thành rejected
+    await PostTargets.update(
+      { status: "rejected" },
+      { where: { post_id: post.id }, transaction: t }
+    );
 
     // Gửi thông báo cho người dùng
     const postSnippet = post.caption
@@ -463,12 +505,20 @@ const publishPost = async (postId, existingTransaction = null) => {
         {
           model: PostTargets,
           as: "postTargets", // Sửa lỗi: Alias không chính xác. Sequelize thường dùng camelCase hoặc alias đã định nghĩa.
-          where: { status: "pending" }, // Chỉ lấy các target chưa được xử lý
+          where: {
+            status: { [Sequelize.Op.in]: ["pending", "scheduled", "approved"] },
+          }, // Lấy các target đang chờ xử lý (bao gồm cả đã lên lịch/duyệt)
           include: [
             // Sửa lỗi: Thêm include SocialAccount để lấy access_token và page_id
             {
               model: SocialAccount,
-              attributes: ["id", "account_id", "access_token"],
+              attributes: [
+                "id",
+                "account_name",
+                "account_id",
+                "access_token",
+                "refresh_token",
+              ],
               // Sửa lỗi: Platform phải được include bên trong SocialAccount
               include: [
                 {
@@ -504,6 +554,19 @@ const publishPost = async (postId, existingTransaction = null) => {
     // Hàm này sẽ lặp qua từng `postToPublish.postTargets` và gọi API tương ứng
     await publishToSocialMedia(postToPublish, t);
 
+    // Cập nhật trạng thái các target thành 'published' sau khi đăng thành công
+    await PostTargets.update(
+      { status: "published", published_at: new Date() },
+      {
+        where: { post_id: postId, status: { [Sequelize.Op.ne]: "failed" } },
+        transaction: t,
+      }
+    );
+
+    // Cập nhật trạng thái bài viết thành 'published'
+    postToPublish.status = "published";
+    await postToPublish.save({ transaction: t });
+
     // Nếu đang dùng transaction từ bên ngoài, không commit ở đây
     if (!existingTransaction) await t.commit();
   } catch (error) {
@@ -516,7 +579,128 @@ const publishPost = async (postId, existingTransaction = null) => {
       throw error; // Ném lỗi để transaction cha xử lý
     } else {
       await Post.update({ status: "failed" }, { where: { id: postId } });
+      // Cập nhật trạng thái các target thành 'failed' để hiển thị lỗi ở front-end
+      await PostTargets.update(
+        { status: "failed", error_message: error.message },
+        { where: { post_id: postId } }
+      );
     }
+  }
+};
+
+const reschedulePost = async (data) => {
+  const { postId, newScheduledTime, userId } = data;
+
+  const t = await sequelize.transaction();
+
+  try {
+    const post = await Post.findByPk(postId, { transaction: t });
+
+    if (!post) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Không tìm thấy bài viết.");
+    }
+
+    // Chỉ cho phép đặt lại lịch cho bài viết của chính mình
+    if (post.user_id !== userId) {
+      throw new ApiError(
+        StatusCodes.FORBIDDEN,
+        "Bạn không có quyền sửa bài viết này."
+      );
+    }
+
+    // Chỉ cho phép đặt lại lịch khi bài viết ở trạng thái 'missed_schedule'
+    if (!["missed_schedule"].includes(post.status)) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        `Không thể đặt lại lịch cho bài viết có trạng thái '${post.status}'.`
+      );
+    }
+
+    // Kiểm tra thời gian lên lịch mới phải là tương lai
+    const scheduledDate = new Date(newScheduledTime);
+    if (isNaN(scheduledDate.getTime())) {
+      throw new ApiError(StatusCodes.BAD_REQUEST, "Thời gian không hợp lệ.");
+    }
+    if (scheduledDate <= new Date()) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Thời gian lên lịch phải lớn hơn thời gian hiện tại."
+      );
+    }
+
+    // Logic chuyển trạng thái:
+    // - Nếu bị lỡ lịch (missed_schedule) -> Chuyển thành scheduled (đã duyệt rồi, chỉ cần chờ đăng).
+
+    const newStatus =
+      post.status === "missed_schedule" ? "scheduled" : "pending_approval";
+
+    post.scheduled_time = newScheduledTime;
+    post.status = newStatus;
+    await post.save({ transaction: t });
+
+    // Đồng bộ trạng thái PostTargets
+    await PostTargets.update(
+      { status: newStatus },
+      { where: { post_id: postId }, transaction: t }
+    );
+
+    // Ghi log hành động
+    try {
+      await ActivityLog.create(
+        {
+          user_id: userId,
+          action: "Đặt lại lịch",
+          target_id: post.id,
+          target_type: "post",
+          details: `Đã đặt lại lịch sang ${newScheduledTime}. Trạng thái mới: ${newStatus}.`,
+        },
+        { transaction: t }
+      );
+    } catch (logError) {
+      console.error("Ghi log đặt lại lịch thất bại:", logError);
+    }
+
+    await t.commit();
+    return post;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
+};
+
+const processScheduledPostsToPublish = async () => {
+  const now = new Date();
+  const postsToPublish = await Post.findAll({
+    where: {
+      status: "scheduled",
+      scheduled_time: {
+        [Sequelize.Op.lte]: now,
+      },
+    },
+    attributes: ["id"], // Chỉ cần lấy ID để xử lý, cho hiệu quả
+  });
+
+  if (postsToPublish.length === 0) {
+    // Dòng log này hữu ích để biết scheduler vẫn đang chạy đúng.
+    // Bạn có thể bỏ comment nếu muốn thấy nó mỗi phút.
+    console.log("[Scheduler] Không có bài viết nào đến lịch đăng ✅.");
+    return;
+  }
+
+  console.log(
+    `[Scheduler] Tìm thấy ${postsToPublish.length} bài viết đến lịch đăng.`
+  );
+
+  // Lặp qua và bắt đầu quá trình đăng cho từng bài.
+  // Chúng ta không `await` ở đây để các bài viết có thể được xử lý song song,
+  // và một lỗi không chặn các bài khác.
+  for (const post of postsToPublish) {
+    publishPost(post.id).catch((error) => {
+      console.error(
+        `[Scheduler] Lỗi khi tự động đăng bài ID ${post.id}:`,
+        error.message
+      );
+    });
   }
 };
 
@@ -529,4 +713,6 @@ module.exports = {
   getPostByUser,
   deletePost,
   publishPost,
+  reschedulePost,
+  processScheduledPostsToPublish,
 };

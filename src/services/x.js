@@ -227,6 +227,31 @@ const uploadMediaToX = async (accessToken, media) => {
   return response.data.media_id_string;
 };
 
+/**
+ * Làm mới access token bằng refresh token.
+ * @param {string} refreshToken - Refresh token hiện tại.
+ * @returns {Promise<object>} Object chứa access_token và refresh_token mới.
+ */
+const refreshXToken = async (refreshToken) => {
+  const tokenUrl = "https://api.twitter.com/2/oauth2/token";
+
+  const params = new URLSearchParams();
+  params.append("refresh_token", refreshToken);
+  params.append("grant_type", "refresh_token");
+  params.append("client_id", X_CLIENT_ID);
+
+  const response = await axios.post(tokenUrl, params, {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      Authorization: `Basic ${Buffer.from(
+        `${X_CLIENT_ID}:${X_CLIENT_SECRET}`
+      ).toString("base64")}`,
+    },
+  });
+
+  return response.data;
+};
+
 module.exports = {
   getXAuthUrl,
   getTokens,
@@ -234,4 +259,5 @@ module.exports = {
   createOrUpdateXAccount,
   postTweet,
   uploadMediaToX,
+  refreshXToken,
 };

@@ -11,6 +11,8 @@ const getAllMedia = async (req, res, next) => {
       content: result.data,
       totalPages: result.totalPages,
       currentPage: result.currentPage,
+      totalItem: result.totalItem,
+      summary: result.summary,
     });
   } catch (error) {
     console.log(error);

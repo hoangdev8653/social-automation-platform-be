@@ -11,6 +11,7 @@ const { corsOptions } = require("../src/config/cors.js");
 const { connectDB } = require("./config/connectDB.js");
 const routers = require("./routes/index.js");
 const { startScheduler } = require("./scheduler.js");
+const cookieParser = require("cookie-parser");
 
 dotenv.config();
 
@@ -24,6 +25,7 @@ app.use(cors());
 app.use(helmet());
 app.use(morgan("dev"));
 app.use(compression());
+app.use(cookieParser());
 
 // Test route
 app.get("/", (req, res) => {

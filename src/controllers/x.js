@@ -1,23 +1,20 @@
-// d:\back-end\social-automation-platform\src\controllers\x.js
 const xService = require("../services/x");
+const {
+  sendOAuthError,
+  sendOAuthSuccess,
+} = require("../utils/oauthResponse.js");
 
-// Lưu trữ tạm thời, trong production nên dùng session hoặc cache (Redis)
 const tempStore = {};
-
+const clientUrl = process.env.CLIENT_URL || "http://localhost:5173";
 const getXAuthUrl = (req, res) => {
   const { authUrl, codeVerifier, state } = xService.getXAuthUrl();
-
-  // Sử dụng 'state' làm key để lưu trữ codeVerifier.
   tempStore[state] = { codeVerifier };
-
-  // Trả về URL cho frontend để redirect
   res.redirect(authUrl);
 };
 
 const handleXCallback = async (req, res) => {
   const { code, state } = req.query;
 
-  // Lấy lại codeVerifier bằng 'state' từ query.
   const { codeVerifier } = tempStore[state] || {};
 
   // Xóa đi để tránh dùng lại
@@ -44,30 +41,11 @@ const handleXCallback = async (req, res) => {
       tokens
     );
 
-    // 5. Gửi thông báo thành công về cho cửa sổ popup của frontend
-    res.send(`
-      <script>
-        window.opener.postMessage({
-          type: 'oauth_success',
-          platform: 'x',
-          account: ${JSON.stringify(socialAccount)}
-        }, '${process.env.CLIENT_URL || "http://localhost:5173"}');
-        window.close();
-      </script>
-    `);
+    sendOAuthSuccess(res, clientUrl, socialAccount, "Twitter");
   } catch (err) {
     console.error("X OAuth Error:", err.response?.data || err.message);
-    // Gửi thông báo lỗi về cho frontend
-    res.status(500).send(`
-      <script>
-        window.opener.postMessage({
-          type: 'oauth_error',
-          platform: 'x',
-          message: 'X authentication failed. Please try again.'
-        }, '${process.env.CLIENT_URL || "http://localhost:5173"}');
-        window.close();
-      </script>
-    `);
+
+    sendOAuthError(res, err, "Twitter");
   }
 };
 

@@ -1,4 +1,4 @@
-import { whitelist_origin } from "../utils/constans.js";
+const { whitelist_origin } = require("../utils/constans");
 
 const isRequestFromPostman = (req) => {
   // Postman requests typically have a User-Agent containing "Postman"
@@ -6,7 +6,7 @@ const isRequestFromPostman = (req) => {
   return userAgent.includes("Postman");
 };
 
-export const corsOptions = {
+const corsOptions = {
   origin: function (origin, callback, req) {
     if (
       whitelist_origin.includes(origin) ||
@@ -20,3 +20,5 @@ export const corsOptions = {
   },
   passReqToCallback: true, // Pass the request object to the origin function
 };
+
+module.exports = corsOptions;

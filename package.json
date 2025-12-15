@@ -21,9 +21,11 @@
     "bcrypt": "^6.0.0",
     "cloudinary": "^1.37.2",
     "compression": "^1.8.1",
+    "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "file-type": "^16.5.4",
     "form-data": "^4.0.4",
     "googleapis": "^164.1.0",
     "helmet": "^8.1.0",
@@ -39,7 +41,8 @@
     "pg-hstore": "^2.3.4",
     "pkce-challenge": "^5.0.0",
     "querystring": "^0.2.1",
-    "sequelize": "^6.37.7"
+    "sequelize": "^6.37.7",
+    "twitter-api-v2": "^1.28.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.26.4",
@@ -47,6 +50,7 @@
     "@babel/node": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "babel-plugin-dotenv": "^0.1.1",
+    "baseline-browser-mapping": "^2.8.32",
     "nodemon": "^3.1.10",
     "sequelize-cli": "^6.6.2"
   }

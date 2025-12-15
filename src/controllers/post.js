@@ -145,6 +145,33 @@ const getAllPosts = async (req, res, next) => {
   }
 };
 
+const reschedulePost = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { scheduled_time } = req.body;
+    const userId = req.userId; // Lấy userId từ token để xác thực quyền sở hữu
+
+    if (!scheduled_time) {
+      throw new ApiError(
+        StatusCodes.BAD_REQUEST,
+        "Vui lòng cung cấp thời gian lên lịch mới (scheduled_time)."
+      );
+    }
+
+    const post = await postService.reschedulePost({
+      postId: id,
+      newScheduledTime: scheduled_time,
+      userId,
+    });
+    return res
+      .status(StatusCodes.OK)
+      .json({ status: 200, message: "Đặt lại lịch thành công", content: post });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
 const deletePost = async (req, res, next) => {
   try {
     const { id: postId } = req.params;
@@ -168,5 +195,6 @@ module.exports = {
   rejectPost,
   getAllPosts,
   getPostByUser,
+  reschedulePost,
   deletePost,
 };
