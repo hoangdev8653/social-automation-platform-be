@@ -3,19 +3,17 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-// Cấu hình kết nối
 const sequelize = new Sequelize(
   process.env.DB_NAME,
   process.env.DB_USERNAME,
   process.env.DB_PASSWORD,
   {
-    host: process.env.DB_HOST, // thay đổi nếu cần
-    dialect: process.env.DB_DIALECT || "postgres", // 'mysql' | 'sqlite' | 'postgres' | 'mssql'
+    host: process.env.DB_HOST,
+    dialect: process.env.DB_DIALECT || "postgres",
     logging: false,
   }
 );
 
-// Hàm kiểm tra kết nối
 const connectDB = async function ConnectionDB() {
   try {
     await sequelize.authenticate();

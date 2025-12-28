@@ -4,7 +4,6 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Template extends Model {
     static associate(models) {
-      // Một Template thuộc về một TemplateCategory
       Template.belongsTo(models.TemplateCategory, {
         foreignKey: "category_id",
         as: "category",
@@ -47,7 +46,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "Template",
-      tableName: "Templates", // ✅ phải đúng với migration: Templates
+      tableName: "Templates",
     }
   );
 

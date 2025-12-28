@@ -30,7 +30,7 @@ const getPostMediaById = async (req, res, next) => {
 
 const createPostMedia = async (req, res, next) => {
   try {
-    const data = req.body; // Expect { post_id, media_id }
+    const data = req.body;
     const postMedia = await postMediaService.createPostMedia(data);
     return res.status(StatusCodes.CREATED).json({
       status: 201,

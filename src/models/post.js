@@ -3,19 +3,16 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class Post extends Model {
     static associate(models) {
-      // Post thuộc về một User (người tạo)
       Post.belongsTo(models.User, {
         foreignKey: "user_id",
         as: "author",
       });
 
-      // Post được duyệt bởi một User (admin)
       Post.belongsTo(models.User, {
         foreignKey: "approved_by",
         as: "approver",
       });
 
-      // Post có nhiều Media thông qua bảng PostMedia
       Post.belongsToMany(models.Media, {
         through: "PostMedia",
         foreignKey: "post_id",
@@ -23,7 +20,6 @@ module.exports = (sequelize, DataTypes) => {
         as: "media",
       });
 
-      // Post có nhiều SocialAccount (target) thông qua bảng PostTargets
       Post.belongsToMany(models.SocialAccount, {
         through: "PostTargets",
         foreignKey: "post_id",
@@ -31,10 +27,9 @@ module.exports = (sequelize, DataTypes) => {
         as: "targets",
       });
 
-      // Thêm association: Một Post có nhiều PostTargets
       Post.hasMany(models.PostTargets, {
         foreignKey: "post_id",
-        as: "postTargets", // Alias này sẽ được dùng trong service
+        as: "postTargets",
       });
     }
   }

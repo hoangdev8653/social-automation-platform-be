@@ -12,7 +12,6 @@ const validateToken = async (req, res, next) => {
     try {
       const decoded = jwt.verify(token, process.env.SECRET_KEY);
 
-      // Lấy người dùng từ DB để kiểm tra trạng thái mới nhất
       const user = await User.findByPk(decoded.userId);
 
       if (!user) {
@@ -21,7 +20,6 @@ const validateToken = async (req, res, next) => {
         );
       }
 
-      // KIỂM TRA NẾU TÀI KHOẢN BỊ KHÓA
       if (user.status === "blocked") {
         return next(
           new ApiError(StatusCodes.FORBIDDEN, "Tài khoản của bạn đã bị khóa.")

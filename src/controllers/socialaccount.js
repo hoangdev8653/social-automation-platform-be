@@ -42,7 +42,6 @@ const getSocialAccountByPlatform = async (req, res, next) => {
   try {
     const { platformId } = req.params;
     const socialaccounts =
-      // Lấy tất cả tài khoản theo platform, không phân biệt người dùng
       await socialaccountService.getSocialAccountsByPlatform(platformId);
     return res.status(StatusCodes.OK).json({
       status: 200,

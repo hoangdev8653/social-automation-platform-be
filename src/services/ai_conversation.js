@@ -6,11 +6,11 @@ const getAllConversation = async () => {
       include: [
         {
           model: db.User,
-          as: "user", // alias được định nghĩa trong model AI_conversation
-          attributes: ["id", "name", "email"], // Chỉ lấy các trường cần thiết
+          as: "user",
+          attributes: ["id", "name", "email"],
         },
       ],
-      order: [["createdAt", "DESC"]], // Sắp xếp các cuộc hội thoại mới nhất lên đầu
+      order: [["createdAt", "DESC"]],
     });
 
     return conversation;

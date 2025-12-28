@@ -18,7 +18,6 @@ dotenv.config();
 const app = express();
 
 connectDB();
-// Middleware
 app.use(express.json());
 // app.use(cors(corsOptions));
 app.use(cors());
@@ -27,7 +26,6 @@ app.use(morgan("dev"));
 app.use(compression());
 app.use(cookieParser());
 
-// Test route
 app.get("/", (req, res) => {
   res.json({ message: "Social Automation Platform Backend is running 🚀" });
 });
@@ -53,14 +51,12 @@ app.use("/api/v1/activity_log", routers.activityLogRouter);
 
 const PORT = process.env.PORT || 3007;
 
-// Cấu hình SSL/TLS để chạy HTTPS
 const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, "..", "server.key")), // Đường dẫn đến khóa riêng tư
-  cert: fs.readFileSync(path.join(__dirname, "..", "server.cert")), // Đường dẫn đến chứng chỉ
+  key: fs.readFileSync(path.join(__dirname, "..", "server.key")),
+  cert: fs.readFileSync(path.join(__dirname, "..", "server.cert")),
 };
 
-// Tạo và khởi chạy máy chủ HTTPS thay vì HTTP
 https.createServer(sslOptions, app).listen(PORT, () => {
   console.log(`🚀 HTTPS Server running on https://localhost:${PORT}`);
-  startScheduler(); // Khởi động bộ lập lịch
+  startScheduler();
 });

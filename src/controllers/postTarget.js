@@ -36,7 +36,7 @@ const createPostTarget = async (req, res, next) => {
 const updatePostTarget = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const data = req.body; // { status, published_url }
+    const data = req.body;
     const updatedTarget = await postTargetService.updatePostTarget(id, data);
     res.status(StatusCodes.OK).json({
       status: 200,

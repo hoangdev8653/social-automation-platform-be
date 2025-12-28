@@ -1,5 +1,4 @@
-// d:\back-end\social-automation-platform\config\config.js
-require("dotenv").config(); // Đảm bảo dotenv đã được cài đặt trong package.json
+require("dotenv").config();
 
 module.exports = {
   development: {
@@ -12,7 +11,7 @@ module.exports = {
   test: {
     username: process.env.DB_USERNAME,
     password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME_TEST, // Nên dùng DB riêng cho test
+    database: process.env.DB_NAME_TEST,
     host: process.env.DB_HOST,
     dialect: process.env.DB_DIALECT,
   },

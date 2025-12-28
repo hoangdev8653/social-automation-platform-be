@@ -3,12 +3,10 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class PostTargets extends Model {
     static associate(models) {
-      // Một PostTarget thuộc về một Post
       PostTargets.belongsTo(models.Post, {
         foreignKey: "post_id",
       });
 
-      // Một PostTarget thuộc về một SocialAccount
       PostTargets.belongsTo(models.SocialAccount, {
         foreignKey: "social_account_id",
       });
@@ -43,7 +41,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "PostTargets",
-      updatedAt: false, // Bảng này không cần updatedAt
+      updatedAt: false,
     }
   );
   return PostTargets;

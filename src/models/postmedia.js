@@ -3,11 +3,9 @@ const { Model } = require("sequelize");
 module.exports = (sequelize, DataTypes) => {
   class PostMedia extends Model {
     static associate(models) {
-      // PostMedia thuộc về một Post
       PostMedia.belongsTo(models.Post, {
         foreignKey: "post_id",
       });
-      // PostMedia thuộc về một Media
       PostMedia.belongsTo(models.Media, {
         foreignKey: "media_id",
       });
@@ -33,7 +31,7 @@ module.exports = (sequelize, DataTypes) => {
     {
       sequelize,
       modelName: "PostMedia",
-      timestamps: false, // Bảng nối thường không cần timestamps
+      timestamps: false,
     }
   );
   return PostMedia;

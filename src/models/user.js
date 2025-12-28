@@ -9,20 +9,16 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
-      // Một User có thể tạo nhiều Post
       User.hasMany(models.Post, {
         foreignKey: "user_id",
         as: "createdPosts",
       });
 
-      // Một User có nhiều Notification
       User.hasMany(models.Notification, {
         foreignKey: "user_id",
         as: "notifications",
       });
 
-      // Một User (admin) có thể duyệt nhiều Post
       User.hasMany(models.Post, {
         foreignKey: "approved_by",
         as: "approvedPosts",
@@ -59,7 +55,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       status: {
         type: DataTypes.STRING,
-        defaultValue: "active", // 'active' | 'blocked'
+        defaultValue: "active",
         allowNull: false,
         validate: {
           isIn: [["active", "blocked"]],

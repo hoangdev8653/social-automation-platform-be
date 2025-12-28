@@ -17,7 +17,6 @@ const getAllNotification = async (req, res, next) => {
 
 const getAllNotificationsForUser = async (req, res, next) => {
   try {
-    // Lấy userId từ token đã được xác thực bởi middleware
     const userId = req.userId;
 
     const notifications = await notificationService.getAllNotificationsForUser(
@@ -57,7 +56,6 @@ const getNotificationById = async (req, res, next) => {
 const createNotification = async (req, res, next) => {
   try {
     const data = req.body;
-    // Lưu ý: Cần có cơ chế phân quyền để chỉ admin mới được tạo thông báo tùy ý.
     const notification = await notificationService.createNotification(data);
     return res.status(StatusCodes.CREATED).json({
       status: 201,

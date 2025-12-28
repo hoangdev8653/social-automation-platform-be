@@ -30,7 +30,6 @@ const createMessage = async (userId, { conversation_id, content }) => {
     let currentConversationId = conversation_id;
 
     if (!currentConversationId) {
-      // Nếu conversation_id không được cung cấp, tạo một cuộc hội thoại mới
       const conversation = await db.AI_conversation.create({
         user_id: userId,
         title: content,
@@ -39,26 +38,22 @@ const createMessage = async (userId, { conversation_id, content }) => {
       currentConversationId = conversation.id;
     }
 
-    // Tạo tin nhắn AI với conversation_id đã xác định
     const userMessage = await db.AI_message.create({
       conversation_id: currentConversationId,
       role: "user",
       content,
     });
 
-    // Lấy lịch sử hội thoại
     const conversationHistory = await db.AI_message.findAll({
       where: { conversation_id: currentConversationId },
       order: [["createdAt", "ASC"]],
     });
 
-    // Định dạng lịch sử hội thoại cho Google Gemini
     const formattedHistory = conversationHistory.map((message) => ({
       role: message.role,
       parts: message.content,
     }));
 
-    // Gọi Google Gemini API để lấy câu trả lời
     const aiResponse = await generateResponse(formattedHistory, content);
 
     const newMessage = await db.AI_message.create({

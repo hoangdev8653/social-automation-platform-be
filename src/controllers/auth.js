@@ -64,7 +64,7 @@ const refreshToken = async (req, res, next) => {
     );
     res.cookie("refreshToken", refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production", // Chỉ bật secure ở môi trường production (HTTPS)
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       sameSite: "strict",
     });

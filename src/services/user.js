@@ -84,7 +84,6 @@ const updateRole = async (adminId, userIdToUpdate, newRole) => {
     userToUpdate.role = newRole;
     await userToUpdate.save();
 
-    // Ghi log thành công
     try {
       await db.ActivityLog.create({
         user_id: adminId,
@@ -102,7 +101,6 @@ const updateRole = async (adminId, userIdToUpdate, newRole) => {
     });
     return updatedUser;
   } catch (error) {
-    // Ghi log thất bại
     try {
       await db.ActivityLog.create({
         user_id: adminId,
@@ -174,7 +172,6 @@ const resetPassword = async (adminId, userIdToReset) => {
       { where: { id: userIdToReset } }
     );
 
-    // Ghi log thành công
     try {
       await db.ActivityLog.create({
         user_id: adminId,
@@ -189,7 +186,6 @@ const resetPassword = async (adminId, userIdToReset) => {
 
     return updated;
   } catch (error) {
-    // Ghi log thất bại
     try {
       await db.ActivityLog.create({
         user_id: adminId,
@@ -216,7 +212,6 @@ const lockAccount = async (userId, { id }) => {
       { where: { id } }
     );
 
-    // Ghi log thành công
     try {
       await db.ActivityLog.create({
         user_id: userId,
@@ -231,7 +226,6 @@ const lockAccount = async (userId, { id }) => {
 
     return updated;
   } catch (error) {
-    // Ghi log thất bại
     try {
       await db.ActivityLog.create({
         user_id: userId,
@@ -256,7 +250,6 @@ const deleteUser = async (adminId, userIdToDelete) => {
     const userInfoForLog = { name: user.name, id: user.id };
     await db.User.destroy({ where: { id: userIdToDelete } });
 
-    // Ghi log thành công
     await db.ActivityLog.create({
       user_id: adminId,
       action: "Xóa tài khoản",
@@ -265,7 +258,6 @@ const deleteUser = async (adminId, userIdToDelete) => {
       details: `Admin đã xóa vĩnh viễn tài khoản: ${userInfoForLog.name} (ID: ${userInfoForLog.id}).`,
     });
   } catch (error) {
-    // Ghi log thất bại
     await db.ActivityLog.create({
       user_id: adminId,
       action: "Xóa tài khoản thất bại",

@@ -149,7 +149,7 @@ const reschedulePost = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { scheduled_time } = req.body;
-    const userId = req.userId; // Lấy userId từ token để xác thực quyền sở hữu
+    const userId = req.userId;
 
     if (!scheduled_time) {
       throw new ApiError(

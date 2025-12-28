@@ -46,7 +46,6 @@ const getAllPostTargets = async (paginationOptions) => {
 
 const createPostTarget = async (data) => {
   const { post_id, social_account_id } = data;
-  // Kiểm tra sự tồn tại của post và social_account
   const post = await db.Post.findByPk(post_id);
   if (!post) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Bài viết không tồn tại.");
@@ -63,9 +62,6 @@ const createPostTarget = async (data) => {
   return newTarget;
 };
 
-/**
- * Cập nhật một mục tiêu đăng bài (ví dụ: cập nhật status, published_url)
- */
 const updatePostTarget = async (id, data) => {
   const target = await db.PostTargets.findByPk(id);
   if (!target) {
@@ -75,16 +71,12 @@ const updatePostTarget = async (id, data) => {
     );
   }
 
-  // Chỉ cho phép cập nhật một số trường nhất định
   const { status, published_url } = data;
   const updatedTarget = await target.update({ status, published_url });
 
   return updatedTarget;
 };
 
-/**
- * Xóa một mục tiêu đăng bài
- */
 const deletePostTarget = async (id) => {
   const target = await db.PostTargets.findByPk(id);
   if (!target) {

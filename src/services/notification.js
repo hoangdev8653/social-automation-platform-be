@@ -71,7 +71,7 @@ const updateStatusToRead = async (id) => {
 
 const deleteNotification = async (notificationId, userId) => {
   try {
-    const notification = await getNotificationById(notificationId, userId); // Tái sử dụng hàm get để kiểm tra quyền
+    const notification = await getNotificationById(notificationId, userId);
     await notification.destroy();
     return { message: "Xóa thông báo thành công." };
   } catch (error) {

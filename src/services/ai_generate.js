@@ -1,31 +1,21 @@
 const { GoogleGenAI } = require("@google/genai");
 
-// Khởi tạo SDK
-// Cảnh báo: Không nên hardcode API key.
 const genAI = new GoogleGenAI({
   apiKey:
     process.env.API_KEY_GOOGLE_GEMINI ||
-    "AIzaSyCSpF2qFJHiNpBxGpNNvqw64BvrbtGvkto", // <-- Cẩn thận lộ key!
+    "AIzaSyCSpF2qFJHiNpBxGpNNvqw64BvrbtGvkto",
 });
 
-// Hàm sleep
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/**
- * Gửi yêu cầu đến Google Gemini API với retry logic
- * (Phiên bản test streaming, sẽ in chunk ra console)
- */
 const generateResponse = async (conversationHistory, newMessage) => {
-  // Danh sách models để thử
   const models = [
     "gemini-2.5-flash",
     "gemini-2.0-flash-exp",
     "gemini-exp-1206",
     "gemini-2.5-pro-preview-03-25",
   ];
-  const maxRetries = 2; // Số lần thử lại cho MỖI model
-
-  // Chỉ thị hệ thống
+  const maxRetries = 2;
   const systemInstruction = `
 Bạn là một trợ lý AI chuyên viết nội dung mạng xã hội cho nền tảng Social Automation Platform.
 
@@ -37,20 +27,19 @@ Bạn là một trợ lý AI chuyên viết nội dung mạng xã hội cho nề
 - Nếu người dùng yêu cầu hình ảnh hoặc video, chỉ cần gợi ý nội dung mô tả cho media (không tạo file thật).
 - Nếu có nhiều nền tảng (ví dụ: Facebook, Instagram, Twitter), hãy viết nội dung riêng biệt cho từng nền tảng.
 - Luôn trả lời trực tiếp, không giải thích, không thêm lời chào hay mô tả AI.
+- Tuyệt đối KHÔNG bắt đầu câu trả lời bằng dấu chấm (.) hoặc ký tự đặc biệt.
 `;
 
-  // 1. Định dạng System Instruction theo chuẩn
   const systemInstructionObject = {
     parts: [{ text: systemInstruction }],
   };
 
-  // 2. Xây dựng lịch sử hội thoại (contents) dạng mảng
   const chatHistory = [];
 
   if (conversationHistory && conversationHistory.length > 0) {
     conversationHistory.forEach((msg) => {
       const role = msg.role === "user" ? "user" : "model";
-      const content = msg.content || msg.parts || ""; // Lấy nội dung
+      const content = msg.content || msg.parts || "";
 
       chatHistory.push({
         role: role,

@@ -12,7 +12,6 @@ module.exports = (sequelize, DataTypes) => {
         foreignKey: "platform_id",
         as: "platform",
       });
-      // Một SocialAccount có thể là target của nhiều Post
       SocialAccount.belongsToMany(models.Post, {
         through: "PostTargets",
         foreignKey: "social_account_id",
@@ -41,12 +40,10 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.TEXT,
         allowNull: false,
       },
-      // Cho phép access_token là null vì với YouTube, chúng ta dùng refresh_token
       access_token: {
         type: DataTypes.TEXT,
         allowNull: true,
       },
-      // Thêm refresh_token cho các nền tảng như YouTube
       refresh_token: {
         type: DataTypes.TEXT,
         allowNull: true,
@@ -55,7 +52,6 @@ module.exports = (sequelize, DataTypes) => {
         type: DataTypes.INTEGER,
         defaultValue: 0,
       },
-      // Thêm trường mới vào đây để Sequelize nhận diện
       total_engagement: {
         type: DataTypes.INTEGER,
         defaultValue: 0,

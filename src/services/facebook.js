@@ -58,10 +58,8 @@ const getUserPages = async (accessToken) => {
 
 const bulkCreateOrUpdatePages = async (pages) => {
   try {
-    // Sử dụng Promise.all để thực hiện các thao tác bất đồng bộ một cách song song
     const savedPages = await Promise.all(
       pages.map(async (page) => {
-        // Dữ liệu chuẩn hóa cho page hiện tại
         const pageData = {
           platform_id: process.env.ID_PLATFORM_FACEBOOK,
           account_name: page.name,
@@ -70,22 +68,19 @@ const bulkCreateOrUpdatePages = async (pages) => {
           account_image: page.picture?.data?.url || null,
         };
 
-        // Tìm một bản ghi có account_id trùng khớp
         const existingAccount = await db.SocialAccount.findOne({
           where: { account_id: page.id },
         });
 
-        // Nếu đã tồn tại, cập nhật nó
         if (existingAccount) {
           await existingAccount.update(pageData);
-          return existingAccount; // Trả về bản ghi đã cập nhật
+          return existingAccount;
         } else {
-          // Nếu chưa tồn tại, tạo mới
           const newAccount = await db.SocialAccount.create({
             ...pageData,
-            account_id: page.id, // Thêm account_id khi tạo mới
+            account_id: page.id,
           });
-          return newAccount; // Trả về bản ghi mới
+          return newAccount;
         }
       })
     );

@@ -22,7 +22,6 @@ const storage = new CloudinaryStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  // Chấp nhận các loại file ảnh, video và âm thanh phổ biến
   const allowedMimes = [
     "image/jpeg",
     "image/png",
@@ -30,13 +29,12 @@ const fileFilter = (req, file, cb) => {
     "image/webp",
     "video/mp4",
     "video/quicktime",
-    "audio/mpeg", // for mp3
+    "audio/mpeg",
   ];
 
   if (allowedMimes.includes(file.mimetype)) {
-    cb(null, true); // Chấp nhận file
+    cb(null, true);
   } else {
-    // Từ chối file
     cb(
       new Error(
         "Định dạng file không hợp lệ. Chỉ chấp nhận ảnh, video và file mp3."
@@ -49,7 +47,7 @@ const fileFilter = (req, file, cb) => {
 const uploadCloud = multer({
   storage,
   fileFilter,
-  limits: { fileSize: 1024 * 1024 * 100 }, // Giới hạn kích thước file là 100MB
+  limits: { fileSize: 1024 * 1024 * 100 },
 });
 
 const deleteFromCloud = async (publicId) => {

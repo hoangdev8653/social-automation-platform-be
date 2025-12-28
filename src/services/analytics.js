@@ -9,41 +9,27 @@ const {
 
 const GRAPH_API_VERSION = "v19.0";
 
-/**
- * Lấy dữ liệu tương tác từ các bài viết của một Facebook Page.
- * @param {string} pageId - ID của Facebook Page.
- * @param {string} accessToken - Access token của page.
- * @returns {Promise<number>} Tổng số tương tác (like, comment, share).
- */
 const fetchFacebookEngagement = async (pageId, accessToken) => {
   try {
-    // Lấy các bài viết gần đây (tối đa 100 bài)
     const endpoint = `https://graph.facebook.com/${GRAPH_API_VERSION}/${pageId}/posts`;
     const response = await axios.get(endpoint, {
       params: {
-        // Lấy các trường cần thiết để tính tương tác
-        fields: "reactions.summary(total_count),comments.summary(total_count)",
-        limit: 100, // Giới hạn số bài viết lấy về để tránh quá tải
+        fields:
+          "reactions.summary(total_count).limit(0),comments.summary(total_count).limit(0),shares",
+        limit: 10,
         access_token: accessToken,
       },
     });
-
-    // LOG 1: Xem dữ liệu thô mà Facebook trả về
-    // console.log(
-    //   `[DEBUG] Dữ liệu trả về từ Facebook cho Page ID ${pageId}:`,
-    //   JSON.stringify(response.data, null, 2)
-    // );
-
     const posts = response.data.data || [];
     let totalEngagement = 0;
 
     for (const post of posts) {
       const likes = post.reactions?.summary?.total_count || 0;
       const comments = post.comments?.summary?.total_count || 0;
-      totalEngagement += likes + comments;
+      const shareCount = post.shares?.count || 0;
+      totalEngagement += likes + comments + shareCount;
     }
 
-    // LOG 2: Xem tổng tương tác đã được tính toán
     console.log(
       `[DEBUG] Tổng tương tác tính được cho Page ID ${pageId}: ${totalEngagement}`
     );
@@ -54,26 +40,19 @@ const fetchFacebookEngagement = async (pageId, accessToken) => {
       `Lỗi khi lấy dữ liệu tương tác cho page ${pageId}:`,
       error.response?.data?.error || error.message
     );
-    return -1; // Trả về -1 để biết là có lỗi
+    return -1;
   }
 };
 
-/**
- * Lấy dữ liệu tương tác từ các video của một kênh YouTube.
- * @param {string} channelId - ID của kênh YouTube.
- * @param {string} apiKey - API Key của bạn cho YouTube Data API.
- * @returns {Promise<number>} Tổng số tương tác (view, like, comment).
- */
 const fetchYouTubeEngagement = async (channelId, apiKey) => {
   try {
     const YOUTUBE_API_ENDPOINT = "https://www.googleapis.com/youtube/v3";
 
-    // 1. Lấy các video gần đây nhất của kênh
     const searchResponse = await axios.get(`${YOUTUBE_API_ENDPOINT}/search`, {
       params: {
         part: "snippet",
         channelId: channelId,
-        maxResults: 50, // Lấy 50 video gần nhất
+        maxResults: 50,
         order: "date",
         type: "video",
         key: apiKey,
@@ -88,7 +67,6 @@ const fetchYouTubeEngagement = async (channelId, apiKey) => {
       return 0;
     }
 
-    // 2. Lấy thống kê chi tiết cho tất cả video đó trong 1 lần gọi
     const videosResponse = await axios.get(`${YOUTUBE_API_ENDPOINT}/videos`, {
       params: {
         part: "statistics",
@@ -102,7 +80,7 @@ const fetchYouTubeEngagement = async (channelId, apiKey) => {
       const stats = video.statistics;
       const likes = parseInt(stats.likeCount) || 0;
       const comments = parseInt(stats.commentCount) || 0;
-      totalEngagement += likes + comments; // Chỉ tính lượt thích và bình luận cho nhất quán
+      totalEngagement += likes + comments;
     }
 
     console.log(
@@ -118,23 +96,17 @@ const fetchYouTubeEngagement = async (channelId, apiKey) => {
   }
 };
 
-/**
- * Lấy dữ liệu tương tác từ các tweet của một tài khoản Twitter.
- * @param {string} userId - ID của người dùng Twitter.
- * @param {string} bearerToken - Bearer Token cho Twitter API v2.
- * @returns {Promise<number>} Tổng số tương tác (like, reply, retweet, quote).
- */
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const fetchTwitterEngagement = async (userId, bearerToken) => {
   try {
-    // Lấy các tweet gần đây (mặc định là 10, tối đa 100)
     const endpoint = `https://api.twitter.com/2/users/${userId}/tweets`;
     const response = await axios.get(endpoint, {
       headers: {
         Authorization: `Bearer ${bearerToken}`,
       },
       params: {
-        "tweet.fields": "public_metrics", // Yêu cầu lấy các chỉ số công khai
-        max_results: 100, // Lấy 100 tweet gần nhất
+        "tweet.fields": "public_metrics",
+        max_results: 10,
       },
     });
 
@@ -154,6 +126,25 @@ const fetchTwitterEngagement = async (userId, bearerToken) => {
     );
     return totalEngagement;
   } catch (error) {
+    if (error.response && error.response.status === 429) {
+      if (retryCount < 3) {
+        console.warn(
+          `[WARNING] Twitter 429 cho user ${userId}. Đang chờ 15 phút để thử lại... (Lần ${
+            retryCount + 1
+          })`
+        );
+
+        await sleep(900000);
+
+        return fetchTwitterEngagement(userId, bearerToken, retryCount + 1);
+      } else {
+        console.error(
+          `[ERROR] Đã thử lại 3 lần nhưng vẫn bị 429 cho user ${userId}. Bỏ qua.`
+        );
+        return -1;
+      }
+    }
+
     console.error(
       `Lỗi khi lấy dữ liệu tương tác cho Twitter user ${userId}:`,
       error.response?.data?.error || error.message
@@ -162,11 +153,7 @@ const fetchTwitterEngagement = async (userId, bearerToken) => {
   }
 };
 
-/**
- * Cập nhật số liệu thống kê (tương tác) cho tất cả các tài khoản.
- */
 const refreshAllFollowerCounts = async () => {
-  // Tên hàm vẫn giữ nguyên để không lỗi ở scheduler.js
   console.log("Bắt đầu làm mới số liệu tương tác...");
   const accounts = await SocialAccount.findAll({ include: "platform" });
 
@@ -180,25 +167,20 @@ const refreshAllFollowerCounts = async () => {
         account.access_token
       );
     } else if (platformName === "youtube") {
-      // Giả sử bạn lưu API key trong biến môi trường hoặc config
       const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
       totalEngagement = await fetchYouTubeEngagement(
-        account.account_id, // account_id này phải là Channel ID
+        account.account_id,
         YOUTUBE_API_KEY
       );
     } else if (platformName === "twitter") {
-      // Giả sử bạn lưu Bearer Token trong biến môi trường hoặc config
       const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN;
       totalEngagement = await fetchTwitterEngagement(
-        account.account_id, // account_id này phải là User ID của Twitter
+        account.account_id,
         TWITTER_BEARER_TOKEN
       );
     }
 
-    // Chỉ cập nhật nếu lấy dữ liệu thành công (khác -1)
     if (totalEngagement !== -1) {
-      // Cập nhật vào cột total_engagement mới của bạn
-      // LOG 3: Xem giá trị sắp được cập nhật vào DB
       console.log(
         `[DEBUG] Chuẩn bị cập nhật tài khoản ${account.account_name} với total_engagement = ${totalEngagement}`
       );
@@ -213,7 +195,6 @@ const refreshAllFollowerCounts = async () => {
 };
 
 const getAnalyticOverview = async () => {
-  // 1. Lấy tất cả dữ liệu tài khoản cần thiết
   const accountsData = await SocialAccount.findAll({
     include: {
       model: Platform,
@@ -231,7 +212,6 @@ const getAnalyticOverview = async () => {
     ],
   });
 
-  // 2. Xử lý và tổng hợp dữ liệu
   const platformAnalytics = {};
   let grandTotalEngagement = 0;
 
@@ -255,7 +235,6 @@ const getAnalyticOverview = async () => {
     grandTotalEngagement += engagement;
   });
 
-  // 3. Tính toán phần trăm và chuyển đổi thành mảng
   return Object.values(platformAnalytics).map((platform) => ({
     ...platform,
     engagement_percentage:
@@ -265,11 +244,6 @@ const getAnalyticOverview = async () => {
   }));
 };
 
-/**
- * Lấy danh sách chi tiết tương tác của từng bài viết cho một tài khoản cụ thể.
- * @param {string} socialAccountId - ID của tài khoản trong DB.
- * @returns {Promise<Array<object>>} - Một mảng các đối tượng bài viết với chi tiết tương tác.
- */
 const getPostLevelEngagement = async (socialAccountId) => {
   const account = await SocialAccount.findByPk(socialAccountId, {
     include: "platform",
@@ -287,7 +261,7 @@ const getPostLevelEngagement = async (socialAccountId) => {
       params: {
         fields:
           "id,message,created_time,permalink_url,reactions.summary(total_count),comments.summary(total_count)",
-        limit: 25, // Lấy 25 bài gần nhất
+        limit: 25,
         access_token: account.access_token,
       },
     });
@@ -305,7 +279,6 @@ const getPostLevelEngagement = async (socialAccountId) => {
     const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
     const YOUTUBE_API_ENDPOINT = "https://www.googleapis.com/youtube/v3";
 
-    // Lấy 25 video gần nhất
     const searchResponse = await axios.get(`${YOUTUBE_API_ENDPOINT}/search`, {
       params: {
         part: "snippet",
@@ -361,14 +334,9 @@ const getPostLevelEngagement = async (socialAccountId) => {
     }));
   }
 
-  return []; // Trả về mảng rỗng nếu không phải nền tảng được hỗ trợ
+  return [];
 };
 
-/**
- * Lấy số liệu tương tác cho một bài viết đã được đăng, dựa vào PostTarget ID.
- * @param {string} postTargetId - ID của bản ghi trong bảng PostTargets.
- * @returns {Promise<object>} - Một đối tượng chứa số liệu tương tác.
- */
 const getEngagementForPublishedPost = async (postTargetId) => {
   const postTarget = await PostTargets.findByPk(postTargetId, {
     include: [
@@ -396,8 +364,6 @@ const getEngagementForPublishedPost = async (postTargetId) => {
 
   try {
     if (platformName === "facebook") {
-      // URL: https://facebook.com/884728328049911_122104393731107957
-      // ID cần lấy là: 884728328049911_122104393731107957
       const postId = url.split("/").pop().split("?")[0];
       const endpoint = `https://graph.facebook.com/${GRAPH_API_VERSION}/${postId}`;
       const response = await axios.get(endpoint, {
@@ -413,8 +379,6 @@ const getEngagementForPublishedPost = async (postTargetId) => {
         comments: data.comments?.summary?.total_count || 0,
       };
     } else if (platformName === "youtube") {
-      // URL: https://www.youtube.com/watch?v=Kkhhq9pIfWo
-      // ID cần lấy là: Kkhhq9pIfWo
       const videoId = new URL(url).searchParams.get("v");
       if (!videoId) throw new Error("Không thể trích xuất Video ID từ URL.");
 
@@ -427,11 +391,9 @@ const getEngagementForPublishedPost = async (postTargetId) => {
       return {
         likes: parseInt(stats?.likeCount) || 0,
         comments: parseInt(stats?.commentCount) || 0,
-        views: parseInt(stats?.viewCount) || 0, // Thêm lượt xem cho YouTube
+        views: parseInt(stats?.viewCount) || 0,
       };
     } else if (platformName === "twitter") {
-      // URL: https://twitter.com/anyuser/status/1984920087594516480
-      // ID cần lấy là: 1984920087594516480
       const tweetId = url.split("/status/").pop().split("?")[0];
       const TWITTER_BEARER_TOKEN = process.env.TWITTER_BEARER_TOKEN;
       const endpoint = `https://api.twitter.com/2/tweets/${tweetId}`;
@@ -443,10 +405,39 @@ const getEngagementForPublishedPost = async (postTargetId) => {
       return {
         likes: metrics?.like_count || 0,
         replies: metrics?.reply_count || 0,
-        views: metrics?.view_count || 0, // Thêm lượt xem (impressions) cho Twitter
+        views: metrics?.view_count || 0,
       };
     }
   } catch (error) {
+    if (
+      platformName === "facebook" &&
+      error.response?.data?.error?.code === 100
+    ) {
+      const specificMessage =
+        "Lỗi Facebook (#100): URL được lưu có thể là của một Trang (Page) thay vì một bài viết (Post).";
+      console.error(
+        `Lỗi khi lấy tương tác cho ${url}:`,
+        specificMessage,
+        error.response.data.error
+      );
+      return { engagement: -1, message: specificMessage };
+    }
+
+    if (platformName === "twitter" && error.response?.status === 429) {
+      const specificMessage =
+        "Lỗi Twitter (429): Quá nhiều yêu cầu (Too Many Requests). API đã tạm thời giới hạn truy cập.";
+      console.error(
+        `Lỗi khi lấy tương tác cho ${url}:`,
+        specificMessage,
+        error.response.data
+      );
+      return { engagement: -1, message: specificMessage };
+    }
+
+    const errorMessage =
+      error.response?.data?.error?.message ||
+      error.response?.data?.detail ||
+      "Lỗi không xác định khi lấy dữ liệu từ API.";
     console.error(
       `Lỗi khi lấy tương tác cho ${url}:`,
       error.response?.data || error.message
@@ -457,12 +448,7 @@ const getEngagementForPublishedPost = async (postTargetId) => {
   return { engagement: 0, message: "Nền tảng không được hỗ trợ." };
 };
 
-/**
- * Lấy số liệu tương tác cho TẤT CẢ các bài viết đã được đăng.
- * @returns {Promise<Array<object>>} - Một mảng các bài viết cùng với số liệu tương tác của chúng.
- */
 const getAllPostsEngagement = async () => {
-  // 1. Lấy tất cả các bài viết đã được đăng và có URL
   const publishedPosts = await PostTargets.findAll({
     where: {
       status: "published",
@@ -479,13 +465,10 @@ const getAllPostsEngagement = async () => {
     order: [["createdAt", "DESC"]],
   });
 
-  // 2. Tạo một mảng các promise để lấy tương tác cho mỗi bài viết
-  const engagementPromises = publishedPosts.map(
-    (postTarget) => getEngagementForPublishedPost(postTarget.id) // Tái sử dụng hàm lấy tương tác cho 1 bài
+  const engagementPromises = publishedPosts.map((postTarget) =>
+    getEngagementForPublishedPost(postTarget.id)
   );
 
-  // 3. Thực thi tất cả các promise đồng thời và xử lý kết quả
-  // Dùng Promise.allSettled để nếu 1 promise lỗi, các promise khác vẫn tiếp tục
   const results = await Promise.allSettled(engagementPromises);
 
   const allPostsWithEngagement = [];
@@ -504,14 +487,29 @@ const getAllPostsEngagement = async () => {
       const likes = result.value.likes || 0;
       const comments = result.value.comments || 0;
       const replies = result.value.replies || 0;
-      const views = result.value.views || 0; // Lấy lượt xem
+      const views = result.value.views || 0;
       engagementData = {
         likes,
         comments,
         replies,
-        views, // Bao gồm lượt xem
-        total: likes + comments + replies + views, // Cập nhật tổng tương tác bao gồm lượt xem
+        views,
+        total: likes + comments + replies + views,
       };
+      if (result.value.message) {
+        engagementData.error = result.value.message;
+      } else {
+        const likes = result.value.likes || 0;
+        const comments = result.value.comments || 0;
+        const replies = result.value.replies || 0;
+        const views = result.value.views || 0;
+        engagementData = {
+          likes,
+          comments,
+          replies,
+          views,
+          total: likes + comments + replies + views,
+        };
+      }
     }
 
     allPostsWithEngagement.push({
@@ -525,7 +523,6 @@ const getAllPostsEngagement = async () => {
     });
   });
 
-  // 4. Sắp xếp kết quả cuối cùng theo tổng tương tác giảm dần
   return allPostsWithEngagement.sort(
     (a, b) => b.engagement.total - a.engagement.total
   );
@@ -533,7 +530,7 @@ const getAllPostsEngagement = async () => {
 
 module.exports = {
   refreshAllFollowerCounts,
-  getAnalyticOverview, // Thêm hàm mới vào đây
+  getAnalyticOverview,
   getPostLevelEngagement,
   getEngagementForPublishedPost,
   getAllPostsEngagement,
