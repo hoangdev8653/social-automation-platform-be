@@ -17,7 +17,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }} # IP của Server
           username: ${{ secrets.VPS_USERNAME }} # Thường là root
-          key: ${{ secrets.SSH_PRIVATE_KEY }} # Private Key để đăng nhập
+          password: ${{ secrets.VPS_PASSWORD }} # Password để đăng nhập
           port: 22
           script: |
             cd ~/services/social-automation-platform-be
