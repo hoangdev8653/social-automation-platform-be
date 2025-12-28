@@ -20,7 +20,7 @@ jobs:
           password: ${{ secrets.VPS_PASSWORD }} # Password để đăng nhập
           port: 22
           script: |
-            cd ~/services/social-automation-platform-be
+            cd /root/services/social-automation-platform-be
             git reset --hard HEAD
             git checkout main
             git pull origin main
