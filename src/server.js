@@ -1,8 +1,5 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const https = require("https");
-const fs = require("fs");
-const path = require("path");
 const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
@@ -51,12 +48,7 @@ app.use("/api/v1/activity_log", routers.activityLogRouter);
 
 const PORT = process.env.PORT || 3007;
 
-const sslOptions = {
-  key: fs.readFileSync(path.join(__dirname, "..", "server.key")),
-  cert: fs.readFileSync(path.join(__dirname, "..", "server.cert")),
-};
-
-https.createServer(sslOptions, app).listen(PORT, () => {
-  console.log(`🚀 HTTPS Server running on https://localhost:${PORT}`);
+app.listen(PORT, () => {
+  console.log(`🚀 HTTP Server running on http://localhost:${PORT}`);
   startScheduler();
 });
